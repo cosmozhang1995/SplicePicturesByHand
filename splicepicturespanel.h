@@ -27,19 +27,19 @@ class SplicePicturesPanel : public QWidget
 {
     Q_OBJECT
 public:
-    explicit SplicePicturesPanel(int rows, int cols, int uwidth, int uheight, float marginRate = 1.0f, float viewZoom = 1.0f, QWidget *parent = 0);
+    explicit SplicePicturesPanel(int rows, int cols, int uwidth, int uheight, double marginRate = 1.0, double viewZoom = 1.0, QWidget *parent = 0);
     ~SplicePicturesPanel();
     void initialize();
     void drawLayout();
 //    void setGrids(int rows, int cols);
 //    void setUnitSize(int uwidth, int uheight);
-    void setViewZoom(float viewZoom);
+    void setViewZoom(double viewZoom);
     void setZoomCenter(int x, int y);
     int getGridRows();
     int getGridCols();
     int getUnitWidth();
     int getUnitHeight();
-    float getZoom();
+    double getZoom();
     QPoint getZoomCenter();
     void loadImage(int row, int col, QString filePath, bool removeIfExists = true);
     bool removeImage(int row, int col);
@@ -65,7 +65,7 @@ public:
 
     SplicePicturesImageItem *selectImage(int row, int col);
     SplicePicturesImageItem *currentImage();
-    QPixmap *getFullPixmap();
+    QPixmap *getFullPixmap(bool repaint = false);
     QPixmap *getTransformedPixmap(int row, int col);
     void move(int x, int y);
     void rotate(Rational degree);
@@ -73,7 +73,7 @@ public:
     void doViewZoom(bool zoomIn = true);
 
     SplicePicturesCalibrationItem *getCalibrationItem(int row, int col);
-    QImage * getBackground(int row, int col);
+    QImage *getBackground(int row, int col);
 
     void autoStitch(QSize overlap, QSize searchRegion, QSize featurePadding);
 protected:
@@ -94,9 +94,9 @@ private:
     int cols;
     int uwidth;
     int uheight;
-    float marginRate;
-    float viewZoom;
-    float imageZoom;
+    double marginRate;
+    double viewZoom;
+    double imageZoom;
     QVector<SplicePicturesImageItem> imageList;
     QVector<SplicePicturesCalibrationItem> calibrationList;
     QVector<SplicePicturesBackgroundItem> backgroundList;
@@ -108,6 +108,21 @@ private:
 
     int zoomCenterX;
     int zoomCenterY;
+
+    QPixmap *fullPixmap;
+    QPixmap *fullPixmapResized;
+    QPixmap *fullPixmapResizedAndCut;
+    int globalDrawStartX;
+    int globalDrawStartY;
+    int globalDrawWidth;
+    int globalDrawHeight;
+    int finalDrawStartX;
+    int finalDrawStartY;
+    int finalDrawWidth;
+    int finalDrawHeight;
+    void redrawFullPixmap();
+    void generateFullPixmapResized();
+    void generateFullPixmapResizedAndCut();
 };
 
 #endif // SPLICEPICTURESPANEL_H

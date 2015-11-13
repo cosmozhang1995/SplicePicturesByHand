@@ -4,6 +4,8 @@
 #include "backgrounddodging.h"
 #include "autostitch.h"
 
+#include "limits.h"
+
 #include <QDebug>
 #include <math.h>
 #include <QSize>
@@ -27,9 +29,11 @@
 #include <QJsonDocument>
 #include <QByteArray>
 
-SplicePicturesPanel::SplicePicturesPanel(int rows, int cols, int uwidth, int uheight, float marginRate, float zoom, QWidget *parent) : QWidget(parent),
+SplicePicturesPanel::SplicePicturesPanel(int rows, int cols, int uwidth, int uheight, double marginRate, double zoom, QWidget *parent) : QWidget(parent),
     rows(rows), cols(cols), uwidth(uwidth), uheight(uheight), marginRate(marginRate), viewZoom(zoom), imageZoom(0.0f),
-    _inDrag(true)
+    _inDrag(true),
+    fullPixmap(NULL), fullPixmapResized(NULL), fullPixmapResizedAndCut(NULL),
+    globalDrawStartX(INT_MAX), globalDrawStartY(INT_MAX), globalDrawWidth(0), globalDrawHeight(0)
 {
     setFocusPolicy(Qt::StrongFocus);
     setZoomCenter(0, 0);
@@ -61,12 +65,12 @@ void SplicePicturesPanel::initialize() {
 }
 
 QSize SplicePicturesPanel::sizeHint() const {
-    return QSize(((float)cols + 2 * marginRate) * uwidth,
-                 ((float)rows + 2 * marginRate) * uheight);
+    return QSize(((double)cols + 2 * marginRate) * uwidth,
+                 ((double)rows + 2 * marginRate) * uheight);
 }
 QSize SplicePicturesPanel::minimumSizeHint() const {
-    return QSize(((float)cols + 2 * marginRate) * uwidth,
-                 ((float)rows + 2 * marginRate) * uheight);
+    return QSize(((double)cols + 2 * marginRate) * uwidth,
+                 ((double)rows + 2 * marginRate) * uheight);
 }
 
 void SplicePicturesPanel::paintEvent(QPaintEvent *) {
@@ -74,40 +78,41 @@ void SplicePicturesPanel::paintEvent(QPaintEvent *) {
     int drawUHeight = uheight * viewZoom;
     int drawMarginWidth = marginRate * viewZoom * uwidth;
     int drawMarginHeight = marginRate * viewZoom * uheight;
-    int zoomOffsetX = minimumSizeHint().width() / 2 - zoomCenterX;
-    int zoomOffsetY = minimumSizeHint().height() / 2 - zoomCenterY;
+    int canvasWidth = minimumSizeHint().width();
+    int canvasHeight = minimumSizeHint().height();
+    int zoomOffsetX = canvasWidth / 2 - zoomCenterX;
+    int zoomOffsetY = canvasHeight / 2 - zoomCenterY;
+    qDebug() << minimumSizeHint().width() << minimumSizeHint().height();
     QPainter painter(this);
     QPen pen;
     pen.setColor(QColor::fromRgb(200,200,200));
     pen.setStyle(Qt::DashLine);
     painter.setPen(pen);
     QVector<QLine> lines;
-    for (int i = 0; i <= cols; i++) lines.push_back(QLine(drawUWidth * i + drawMarginWidth + zoomOffsetX, zoomOffsetY, drawUWidth * i + drawMarginWidth + zoomOffsetX, drawUHeight * rows + 2 * drawMarginWidth + zoomOffsetY));
-    for (int i = 0; i <= rows; i++) lines.push_back(QLine(zoomOffsetX, drawUHeight * i + drawMarginHeight + zoomOffsetY, drawUWidth * rows + drawMarginWidth * 2 + zoomOffsetX, drawUHeight * i + drawMarginHeight + zoomOffsetY));
-    painter.fillRect(drawMarginWidth + zoomOffsetX, drawMarginHeight + zoomOffsetY,
-                     cols * drawUWidth, rows * drawUHeight,
-                     QColor::fromRgb(255,255,255));
+//    for (int i = 0; i <= cols; i++) lines.push_back(QLine(drawUWidth * i + drawMarginWidth + zoomOffsetX, zoomOffsetY, drawUWidth * i + drawMarginWidth + zoomOffsetX, drawUHeight * rows + 2 * drawMarginWidth + zoomOffsetY));
+//    for (int i = 0; i <= rows; i++) lines.push_back(QLine(zoomOffsetX, drawUHeight * i + drawMarginHeight + zoomOffsetY, drawUWidth * rows + drawMarginWidth * 2 + zoomOffsetX, drawUHeight * i + drawMarginHeight + zoomOffsetY));
+    for (int i = 0; i <= cols; i++) {
+        int line_x = drawUWidth * i + drawMarginWidth + zoomOffsetX;
+        if (line_x >= 0 && line_x <= canvasWidth)
+            lines.push_back(QLine(line_x, 0, line_x, canvasHeight));
+    }
+    for (int i = 0; i <= rows; i++) {
+        int line_y = drawUHeight * i + drawMarginHeight + zoomOffsetY;
+        if (line_y >= 0 && line_y <= canvasHeight)
+            lines.push_back(QLine(0, line_y, canvasWidth, line_y));
+    }
+    int fillStartX = drawMarginWidth + zoomOffsetX; if (fillStartX < 0) fillStartX = 0;
+    int fillStartY = drawMarginHeight + zoomOffsetY; if (fillStartY < 0) fillStartY = 0;
+    int fillEndX = fillStartX + cols * drawUWidth; if (fillEndX > canvasWidth) fillEndX = canvasWidth;
+    int fillEndY = fillStartY + rows * drawUHeight; if (fillEndY > canvasHeight) fillEndY = canvasHeight;
+//    painter.fillRect(drawMarginWidth + zoomOffsetX, drawMarginHeight + zoomOffsetY,
+//                     cols * drawUWidth, rows * drawUHeight,
+//                     QColor::fromRgb(255,255,255));
+    painter.fillRect(fillStartX, fillStartY, fillEndX - fillStartX, fillEndY - fillStartY, QColor::fromRgb(255,255,255));
     painter.drawLines(lines);
-    for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
-        int drawWidth = (float)iter->getZoom() * imageZoom * viewZoom * (float)iter->getWidth();
-        int drawHeight = (float)iter->getZoom() * imageZoom * viewZoom * (float)iter->getHeight();
-        int drawOffsetX = imageZoom * viewZoom * (float)iter->getX() + zoomOffsetX;
-        int drawOffsetY = imageZoom * viewZoom * (float)iter->getY() + zoomOffsetY;
-        int drawStartX = drawMarginWidth + iter->getCol() * drawUWidth + (drawUWidth - drawWidth) / 2 + drawOffsetX;
-        int drawStartY = drawMarginHeight + iter->getRow() * drawUHeight + (drawUHeight - drawHeight) / 2 + drawOffsetY;
-        int drawCenterX = drawStartX + drawWidth / 2;
-        int drawCenterY = drawStartY + drawHeight / 2;
-
-        QPixmap transformedPixmap = iter->getTransformedPixmap();
-        int resizedDrawWidth = transformedPixmap.size().width() * imageZoom * viewZoom;
-        int resizedDrawHeight = transformedPixmap.size().height() * imageZoom * viewZoom;
-        drawWidth = resizedDrawWidth;
-        drawHeight = resizedDrawHeight;
-        drawStartX = drawCenterX - drawWidth / 2;
-        drawStartY = drawCenterY - drawHeight / 2;
-        painter.drawPixmap(drawStartX, drawStartY,
-                           drawWidth, drawHeight,
-                           transformedPixmap);
+    if (fullPixmapResizedAndCut) {
+        painter.drawPixmap(finalDrawStartX, finalDrawStartY, finalDrawWidth, finalDrawHeight,
+                           *fullPixmapResizedAndCut);
     }
 }
 
@@ -122,15 +127,18 @@ void SplicePicturesPanel::drawLayout() {
 //    this->uwidth = uwidth;
 //    this->uheight = uheight;
 //}
-void SplicePicturesPanel::setViewZoom(float zoom) {
-    float oldViewZoom = this->viewZoom;
+void SplicePicturesPanel::setViewZoom(double zoom) {
+    double
+            oldViewZoom = this->viewZoom;
     this->viewZoom = zoom;
     setZoomCenter(zoomCenterX * zoom / oldViewZoom, zoomCenterY * zoom / oldViewZoom);
+    generateFullPixmapResized();
     update();
 }
 void SplicePicturesPanel::setZoomCenter(int x, int y) {
     zoomCenterX = std::min(std::max(x, minimumSizeHint().width() / 2), (int)(minimumSizeHint().width() * (viewZoom - 0.5f)));
     zoomCenterY = std::min(std::max(y, minimumSizeHint().height() / 2), (int)(minimumSizeHint().height() * (viewZoom - 0.5f)));
+    generateFullPixmapResizedAndCut();
     update();
 }
 
@@ -146,42 +154,120 @@ int SplicePicturesPanel::getUnitWidth() {
 int SplicePicturesPanel::getUnitHeight() {
     return uheight;
 }
-float SplicePicturesPanel::getZoom() {
+double SplicePicturesPanel::getZoom() {
     return viewZoom;
 }
 QPoint SplicePicturesPanel::getZoomCenter() {
     return QPoint(zoomCenterX, zoomCenterY);
 }
 
-QPixmap *SplicePicturesPanel::getFullPixmap() {
-    QPixmap *pix = new QPixmap((int)(cols * uwidth / imageZoom), (int)(rows * uheight / imageZoom));
-    pix->fill(QColor::fromRgb(255,255,255));
-    QPainter *painter = new QPainter(pix);
+QPixmap *SplicePicturesPanel::getFullPixmap(bool repaint) {
+    if (!repaint) return fullPixmap;
+    int globalDrawStartX = INT_MAX, globalDrawStartY = INT_MAX;
+    int globalDrawEndX = -INT_MAX, globalDrawEndY = -INT_MAX;
+    QVector<QPixmap> pixmaps;
+    QVector<int*> pixargs;
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
-        int drawWidth = (float)iter->getZoom() * (float)iter->getWidth();
-        int drawHeight = (float)iter->getZoom() * (float)iter->getHeight();
-        int drawOffsetX = (float)iter->getX();
-        int drawOffsetY = (float)iter->getY();
+        int drawWidth = (double)iter->getZoom() * (double)iter->getWidth();
+        int drawHeight = (double)iter->getZoom() * (double)iter->getHeight();
+        int drawOffsetX = (double)iter->getX();
+        int drawOffsetY = (double)iter->getY();
         int drawStartX = iter->getCol() * uwidth / imageZoom + (uwidth / imageZoom - drawWidth) / 2 + drawOffsetX;
         int drawStartY = iter->getRow() * uheight / imageZoom + (uheight / imageZoom - drawHeight) / 2 + drawOffsetY;
         int drawCenterX = drawStartX + drawWidth / 2;
         int drawCenterY = drawStartY + drawHeight / 2;
-        QMatrix matrix;
-        matrix.scale((double)iter->getZoom(), (double)iter->getZoom());
-        matrix.rotate((double)iter->getRotation());
-        matrix.translate(iter->getX(), iter->getY());
-        double rotationRadius = (double)iter->getRotation() / 180.0 * M_PI;
-        int resizedDrawWidth = drawWidth * fabs(cos(rotationRadius)) + drawHeight * fabs(sin(rotationRadius));
-        int resizedDrawHeight = drawWidth * fabs(sin(rotationRadius)) + drawHeight * fabs(cos(rotationRadius));
+        QPixmap transformedPix = iter->getTransformedPixmap();
+        pixmaps.push_back(transformedPix);
+        int resizedDrawWidth = transformedPix.size().width();
+        int resizedDrawHeight = transformedPix.size().height();
         drawWidth = resizedDrawWidth;
         drawHeight = resizedDrawHeight;
         drawStartX = drawCenterX - drawWidth / 2;
         drawStartY = drawCenterY - drawHeight / 2;
-        painter->drawPixmap(drawStartX, drawStartY,
-                           drawWidth, drawHeight,
-                           iter->getPixmap()->transformed(matrix));
+        int drawEndX = drawStartX + drawWidth;
+        int drawEndY = drawStartY + drawHeight;
+        int *ap = new int[4];
+        ap[0] = drawStartX;
+        ap[1] = drawStartY;
+        ap[2] = drawWidth;
+        ap[3] = drawHeight;
+        pixargs.push_back(ap);
+        if (globalDrawStartX > drawStartX) globalDrawStartX  = drawStartX;
+        if (globalDrawStartY > drawStartY) globalDrawStartY  = drawStartY;
+        if (globalDrawEndX < drawEndX) globalDrawEndX  = drawEndX;
+        if (globalDrawEndY < drawEndY) globalDrawEndY  = drawEndY;
     }
-    return pix;
+//    QPixmap *pix = new QPixmap((int)(cols * uwidth / imageZoom), (int)(rows * uheight / imageZoom));
+    QPixmap *pix = new QPixmap(globalDrawEndX - globalDrawStartX, globalDrawEndY - globalDrawStartY);
+    pix->fill(Qt::transparent);
+    QPainter painter(pix);
+    QVector<QPixmap>::iterator iterp = pixmaps.begin();
+    QVector<int*>::iterator itera = pixargs.begin();
+    for (; iterp != pixmaps.end() && itera != pixargs.end(); iterp++, itera++) {
+        QPixmap *pixmap = (QPixmap *)iterp;
+        int *ap = *(int **)itera;
+        int drawStartX = ap[0] - globalDrawStartX;
+        int drawStartY = ap[1] - globalDrawStartY;
+        int drawWidth = ap[2];
+        int drawHeight = ap[3];
+        painter.drawPixmap(drawStartX, drawStartY,
+                           drawWidth, drawHeight,
+                           *pixmap);
+        delete []ap;
+    }
+    this->globalDrawStartX = globalDrawStartX;
+    this->globalDrawStartY = globalDrawStartY;
+    this->globalDrawWidth = pix->size().width();
+    this->globalDrawHeight = pix->size().height();
+    if (fullPixmap) delete fullPixmap;
+    fullPixmap = pix;
+    return fullPixmap;
+}
+void SplicePicturesPanel::redrawFullPixmap() {
+    getFullPixmap(true);
+    generateFullPixmapResized();
+}
+void SplicePicturesPanel::generateFullPixmapResized() {
+    if (!fullPixmap) return;
+    double scaleRate = viewZoom * imageZoom;
+    QMatrix matrix;
+    matrix.scale(scaleRate, scaleRate);
+    if (fullPixmapResized) delete fullPixmapResized;
+    fullPixmapResized = new QPixmap(fullPixmap->transformed(matrix));
+    generateFullPixmapResizedAndCut();
+}
+void SplicePicturesPanel::generateFullPixmapResizedAndCut() {
+    if (!fullPixmapResized) return;
+    QSize imageSize = fullPixmapResized->size();
+    int imageWidth = imageSize.width();
+    int imageHeight = imageSize.height();
+    int canvasWidth = minimumSizeHint().width();
+    int canvasHeight = minimumSizeHint().height();
+    int zoomOffsetX = canvasWidth / 2 - zoomCenterX;
+    int zoomOffsetY = canvasHeight / 2 - zoomCenterY;
+    int drawMarginWidth = marginRate * viewZoom * uwidth;
+    int drawMarginHeight = marginRate * viewZoom * uheight;
+    finalDrawStartX = 0;
+    finalDrawStartY = 0;
+    int cutStartX = - zoomOffsetX - drawMarginWidth - globalDrawStartX * viewZoom * imageZoom;
+    int cutStartY = - zoomOffsetY - drawMarginHeight - globalDrawStartY * viewZoom * imageZoom;
+    if (cutStartX < 0) { finalDrawStartX -= cutStartX; cutStartX = 0; }
+    if (cutStartY < 0) { finalDrawStartY -= cutStartY; cutStartY = 0; }
+    int finalDrawEndX = finalDrawStartX + imageWidth - cutStartX;
+    int finalDrawEndY = finalDrawStartY + imageHeight - cutStartY;
+    int cutEndX = imageWidth;
+    int cutEndY = imageHeight;
+    if (finalDrawEndX > canvasWidth) { cutEndX -= finalDrawEndX - canvasWidth; finalDrawEndX = canvasWidth; }
+    if (finalDrawEndY > canvasHeight) { cutEndY -= finalDrawEndY - canvasHeight; finalDrawEndY = canvasHeight; }
+    finalDrawWidth = cutEndX - cutStartX;
+    finalDrawHeight = cutEndY - cutStartY;
+    if (fullPixmapResizedAndCut) delete fullPixmapResizedAndCut;
+    fullPixmapResizedAndCut = new QPixmap(fullPixmapResized->copy(cutStartX, cutStartY,
+                                                                  finalDrawWidth, finalDrawHeight));
+    qDebug() << finalDrawWidth << finalDrawHeight;
+    fullPixmap->save("/Users/cosmozhang/Desktop/1.tiff");
+    fullPixmapResized->save("/Users/cosmozhang/Desktop/2.tiff");
+    fullPixmapResizedAndCut->save("/Users/cosmozhang/Desktop/3.tiff");
 }
 
 QPixmap * SplicePicturesPanel::getTransformedPixmap(int row, int col) {
@@ -265,18 +351,20 @@ void SplicePicturesPanel::loadImage(int row, int col, QString filePath, bool rem
     }
     imageList.push_back(item);
     if (imageZoom == 0.0f) {
-        if ((float)item.getWidth() / (float)item.getHeight() < (float)uwidth / (float)uheight) {
-            imageZoom = (float)uwidth / (float)item.getWidth();
+        if ((double)item.getWidth() / (double)item.getHeight() < (double)uwidth / (double)uheight) {
+            imageZoom = (double)uwidth / (double)item.getWidth();
         } else {
-            imageZoom = (float)uheight / (float)item.getHeight();
+            imageZoom = (double)uheight / (double)item.getHeight();
         }
     }
+    redrawFullPixmap();
     update();
 }
 bool SplicePicturesPanel::removeImage(int row, int col) {
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
         if (iter->getRow() == row && iter->getCol() == col) {
             imageList.erase(iter);
+            redrawFullPixmap();
             update();
             return true;
         }
@@ -286,12 +374,14 @@ bool SplicePicturesPanel::removeImage(int row, int col) {
 bool SplicePicturesPanel::removeLastImage() {
     if (imageList.empty()) return false;
     imageList.pop_back();
+    redrawFullPixmap();
     update();
     return true;
 }
 bool SplicePicturesPanel::removeAllImages() {
     if (imageList.empty()) return false;
     imageList.clear();
+    redrawFullPixmap();
     update();
     return true;
 }
@@ -318,6 +408,7 @@ void SplicePicturesPanel::loadConfiguration(QJsonDocument configuration) {
         SplicePicturesImageItem item(itemJson);
         imageList.push_back(item);
     }
+    redrawFullPixmap();
     update();
 }
 QByteArray SplicePicturesPanel::getConfigurationAsData() {
@@ -381,6 +472,7 @@ SplicePicturesImageItem *SplicePicturesPanel::selectImage(int row, int col) {
             SplicePicturesImageItem item = *(SplicePicturesImageItem *)iter;
             imageList.erase(iter);
             imageList.push_back(item);
+            redrawFullPixmap();
             update();
             return (SplicePicturesImageItem *)imageList.cend();
         }
@@ -398,6 +490,7 @@ void SplicePicturesPanel::move(int x, int y) {
     SplicePicturesImageItem *item = (SplicePicturesImageItem *)imageList.end() - 1;
     item->setX(item->getX() + x);
     item->setY(item->getY() + y);
+    redrawFullPixmap();
     update();
 }
 void SplicePicturesPanel::rotate(Rational degree) {
@@ -405,6 +498,7 @@ void SplicePicturesPanel::rotate(Rational degree) {
     SplicePicturesImageItem *item = (SplicePicturesImageItem *)imageList.end() - 1;
     Rational rotation = item->getRotation();
     item->setRotation(rotation + degree);
+    redrawFullPixmap();
     update();
 }
 void SplicePicturesPanel::zoom(Rational rate) {
@@ -412,11 +506,12 @@ void SplicePicturesPanel::zoom(Rational rate) {
     SplicePicturesImageItem *item = (SplicePicturesImageItem *)imageList.end() - 1;
     Rational zoom = item->getZoom();
     item->setZoom(zoom + rate);
+    redrawFullPixmap();
     update();
 }
 
 void SplicePicturesPanel::doViewZoom(bool zoomIn) {
-    float currentZoom = getZoom();
+    double currentZoom = getZoom();
     if (currentZoom < MAX_ZOOM && zoomIn) {
         setViewZoom(currentZoom * ZOOM_RATE);
     } else if (currentZoom > MIN_ZOOM && !zoomIn) {

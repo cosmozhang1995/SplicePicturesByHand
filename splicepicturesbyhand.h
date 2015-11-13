@@ -10,9 +10,9 @@ class QLabel;
 
 #define NUM_ROWS 4
 #define NUM_COLS 4
-#define PIC_WIDTH 163
-#define PIC_HEIGHT 120
-#define MARGIN_RATE 0.1
+#define PIC_WIDTH 120
+#define PIC_HEIGHT 90
+#define MARGIN_RATE 1
 
 #define OVERLAP_X 201
 #define OVERLAP_Y 201

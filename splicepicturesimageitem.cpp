@@ -5,6 +5,9 @@
 #include <QPixmap>
 #include <QString>
 #include <QDebug>
+#include <QMatrix>
+#include <QSize>
+#include <QRect>
 
 SplicePicturesImageItem::SplicePicturesImageItem()
     : row(0), col(0), image(NULL), pixmap(NULL), width(0), height(0), x(0), y(0), path(""), rotation(0), zoom(1)
@@ -76,6 +79,9 @@ void SplicePicturesImageItem::loadFromPath(QString path) {
     QPixmap pixmap = QPixmap::fromImage(*image);
     int pix_w = image->size().width();
     int pix_h = image->size().height();
+    int cut = 0;
+    image = new QImage(image->copy(cut, cut, pix_w - 2*cut, pix_h - 2*cut));
+    pixmap = QPixmap::fromImage(*image);
     this->image = image;
     this->pixmap = new QPixmap(pixmap);
     this->width = pix_w;
@@ -93,4 +99,37 @@ QJsonObject SplicePicturesImageItem::toJsonObject() {
     json.insert("zoom", this->zoom.toString());
     json.insert("path", this->path);
     return json;
+}
+
+QImage SplicePicturesImageItem::getTransformedImage(TransformFlag flag) {
+    QMatrix matrix;
+    int flagint = (int)flag;
+    if (flagint & TRANS_SCALE) matrix.scale((double)getZoom(), (double)getZoom());
+    if (flagint & TRANS_ROTATE) matrix.rotate((double)getRotation());
+    if (flagint & TRANS_MOVE) matrix.translate(getX(), getY());
+    return getImage()->transformed(matrix);
+}
+QPixmap SplicePicturesImageItem::getTransformedPixmap(TransformFlag flag) {
+    QMatrix matrix;
+    int flagint = (int)flag;
+    if (flagint & TRANS_SCALE) matrix.scale((double)getZoom(), (double)getZoom());
+    if (flagint & TRANS_ROTATE) matrix.rotate((double)getRotation());
+    if (flagint & TRANS_MOVE) matrix.translate(getX(), getY());
+    return getPixmap()->transformed(matrix);
+}
+QImage SplicePicturesImageItem::getTransformedImage(QRect range, TransformFlag flag) {
+    return getTransformedImage(flag).copy(range);
+}
+QPixmap SplicePicturesImageItem::getTransformedPixmap(QRect range, TransformFlag flag) {
+    return getTransformedPixmap(flag).copy(range);
+}
+QImage SplicePicturesImageItem::getTransformedImage(QSize size, TransformFlag flag) {
+    QSize imageSize = getImage()->size();
+    QRect range((imageSize.width() - size.width())/2, (imageSize.height() - size.height())/2, size.width(), size.height());
+    return getTransformedImage(range, flag);
+}
+QPixmap SplicePicturesImageItem::getTransformedPixmap(QSize size, TransformFlag flag) {
+    QSize imageSize = getImage()->size();
+    QRect range((imageSize.width() - size.width())/2, (imageSize.height() - size.height())/2, size.width(), size.height());
+    return getTransformedPixmap(range, flag);
 }

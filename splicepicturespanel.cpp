@@ -2,6 +2,7 @@
 
 #include "rational.h"
 #include "backgrounddodging.h"
+#include "autostitch.h"
 
 #include <QDebug>
 #include <math.h>
@@ -41,22 +42,22 @@ SplicePicturesPanel::~SplicePicturesPanel() {
 
 void SplicePicturesPanel::initialize() {
     return;
-    backgroundList.push_back(SplicePicturesBackgroundItem(0, 0, new QImage("/Users/cosmozhang/Desktop/Background/1.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(0, 1, new QImage("/Users/cosmozhang/Desktop/Background/2.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(0, 2, new QImage("/Users/cosmozhang/Desktop/Background/3.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(0, 3, new QImage("/Users/cosmozhang/Desktop/Background/4.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(1, 0, new QImage("/Users/cosmozhang/Desktop/Background/5.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(1, 1, new QImage("/Users/cosmozhang/Desktop/Background/6.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(1, 2, new QImage("/Users/cosmozhang/Desktop/Background/7.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(1, 3, new QImage("/Users/cosmozhang/Desktop/Background/8.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(2, 0, new QImage("/Users/cosmozhang/Desktop/Background/9.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(2, 1, new QImage("/Users/cosmozhang/Desktop/Background/10.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(2, 2, new QImage("/Users/cosmozhang/Desktop/Background/11.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(2, 3, new QImage("/Users/cosmozhang/Desktop/Background/12.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(3, 0, new QImage("/Users/cosmozhang/Desktop/Background/13.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(3, 1, new QImage("/Users/cosmozhang/Desktop/Background/14.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(3, 2, new QImage("/Users/cosmozhang/Desktop/Background/15.tiff")));
-    backgroundList.push_back(SplicePicturesBackgroundItem(3, 3, new QImage("/Users/cosmozhang/Desktop/Background/16.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(0, 0, new QImage("/Users/cosmozhang/work/test/Background//1.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(0, 1, new QImage("/Users/cosmozhang/work/test/Background//2.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(0, 2, new QImage("/Users/cosmozhang/work/test/Background//3.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(0, 3, new QImage("/Users/cosmozhang/work/test/Background//4.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(1, 0, new QImage("/Users/cosmozhang/work/test/Background//5.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(1, 1, new QImage("/Users/cosmozhang/work/test/Background//6.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(1, 2, new QImage("/Users/cosmozhang/work/test/Background//7.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(1, 3, new QImage("/Users/cosmozhang/work/test/Background//8.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(2, 0, new QImage("/Users/cosmozhang/work/test/Background//9.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(2, 1, new QImage("/Users/cosmozhang/work/test/Background//10.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(2, 2, new QImage("/Users/cosmozhang/work/test/Background//11.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(2, 3, new QImage("/Users/cosmozhang/work/test/Background//12.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(3, 0, new QImage("/Users/cosmozhang/work/test/Background//13.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(3, 1, new QImage("/Users/cosmozhang/work/test/Background//14.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(3, 2, new QImage("/Users/cosmozhang/work/test/Background//15.tiff")));
+    backgroundList.push_back(SplicePicturesBackgroundItem(3, 3, new QImage("/Users/cosmozhang/work/test/Background//16.tiff")));
 }
 
 QSize SplicePicturesPanel::sizeHint() const {
@@ -97,25 +98,16 @@ void SplicePicturesPanel::paintEvent(QPaintEvent *) {
         int drawCenterX = drawStartX + drawWidth / 2;
         int drawCenterY = drawStartY + drawHeight / 2;
 
-        QMatrix matrix;
-        matrix.scale((double)iter->getZoom(), (double)iter->getZoom());
-        matrix.rotate((double)iter->getRotation());
-        matrix.translate(iter->getX(), iter->getY());
-        double rotationRadius = (double)iter->getRotation() / 180.0 * M_PI;
-        int resizedDrawWidth = drawWidth * fabs(cos(rotationRadius)) + drawHeight * fabs(sin(rotationRadius));
-        int resizedDrawHeight = drawWidth * fabs(sin(rotationRadius)) + drawHeight * fabs(cos(rotationRadius));
+        QPixmap transformedPixmap = iter->getTransformedPixmap();
+        int resizedDrawWidth = transformedPixmap.size().width() * imageZoom * viewZoom;
+        int resizedDrawHeight = transformedPixmap.size().height() * imageZoom * viewZoom;
         drawWidth = resizedDrawWidth;
         drawHeight = resizedDrawHeight;
         drawStartX = drawCenterX - drawWidth / 2;
         drawStartY = drawCenterY - drawHeight / 2;
         painter.drawPixmap(drawStartX, drawStartY,
                            drawWidth, drawHeight,
-//                           iter->pixmap);
-                           iter->getPixmap()->transformed(matrix));
-
-//        painter.translate(drawCenterX, drawCenterY);
-//        painter.rotate(-(double)iter->rotation);
-//        painter.translate(-drawCenterX, -drawCenterY);
+                           transformedPixmap);
     }
 }
 
@@ -260,16 +252,16 @@ void SplicePicturesPanel::loadImage(int row, int col, QString filePath, bool rem
     SplicePicturesImageItem item(row, col, filePath);
     QImage *backgroundImage = getBackground(row, col);
     if (backgroundImage != NULL) {
-        QImage *dodgedImage = BackgroundDodging::dodgeBackground(*item.getImage(), *backgroundImage);
-        item.setImage(dodgedImage);
-        item.setPixmap(new QPixmap(QPixmap::fromImage(*dodgedImage)));
-        dodgedImage->save(QString("/Users/cosmozhang/Desktop/Background/export_dodged/%1.tiff").arg(row * 4 + col + 1));
+        QImage dodgedImage = BackgroundDodging::dodgeBackground(*item.getImage(), *backgroundImage);
+        item.setImage(new QImage(dodgedImage));
+        item.setPixmap(new QPixmap(QPixmap::fromImage(dodgedImage)));
+        dodgedImage.save(QString("/Users/cosmozhang/work/test/Background/export_dodged/%1.tiff").arg(row * 4 + col + 1));
     }
     SplicePicturesCalibrationItem *calibrationItem = getCalibrationItem(row, col);
     if (calibrationItem != NULL) {
         item.setRotation(calibrationItem->getRotation());
         item.setZoom(calibrationItem->getZoom());
-        item.getPixmap()->save(QString("/Users/cosmozhang/Desktop/Background/export_calibrated/%1.tiff").arg(row * 4 + col + 1));
+        item.getPixmap()->save(QString("/Users/cosmozhang/work/test/Background/export_calibrated/%1.tiff").arg(row * 4 + col + 1));
     }
     imageList.push_back(item);
     if (imageZoom == 0.0f) {
@@ -447,4 +439,33 @@ QImage * SplicePicturesPanel::getBackground(int row, int col) {
         }
     }
     return NULL;
+}
+
+void SplicePicturesPanel::autoStitch(QSize overlap, QSize searchRegion, QSize featurePadding) {
+    AutoStitch::stitchImages(imageList, overlap, searchRegion, featurePadding);
+    int actualWidth = uwidth / imageZoom;
+    int actualHeight = uheight / imageZoom;
+    SplicePicturesImageItem ***items = new SplicePicturesImageItem **;
+    for (int r = 0; r < rows; r++) {
+        items[r] = new SplicePicturesImageItem *;
+        for (int c = 0; c < cols; c++) items[r][c] = NULL;
+    }
+    for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
+        items[iter->getRow()][iter->getCol()] = (SplicePicturesImageItem *)iter;
+    }
+    for (int r = 0; r < rows; r++) {
+        int accOffsetX = 0;
+        int deltaX1 = actualWidth - items[r][0]->getImage()->size().width(), deltaX2;
+        for (int c = 1; c < cols; c++) {
+            if (c > 1) deltaX1 = deltaX2;
+            SplicePicturesImageItem *item = items[r][c];
+            deltaX2 = actualWidth - item->getImage()->size().width();
+            accOffsetX += deltaX2 / 2 + deltaX1 / 2 + (int)((deltaX1 % 2) && (deltaX2 % 2));
+            item->setX(item->getX() + accOffsetX);
+        }
+    }
+    for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
+        qDebug() << QString("%1,%2  ---  x = %3, y = %4").arg(iter->getRow()).arg(iter->getCol()).arg(iter->getX()).arg(iter->getY());
+    }
+    update();
 }

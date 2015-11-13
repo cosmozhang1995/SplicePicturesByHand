@@ -19,7 +19,9 @@ SOURCES += main.cpp\
     splicepicturesimageitem.cpp \
     splicepicturescalibrationitem.cpp \
     splicepicturesbackgrounditem.cpp \
-    backgrounddodging.cpp
+    backgrounddodging.cpp \
+    autostitch.cpp \
+    pir.c
 
 HEADERS  += splicepicturesbyhand.h \
     splicepicturespanel.h \
@@ -27,4 +29,6 @@ HEADERS  += splicepicturesbyhand.h \
     splicepicturesimageitem.h \
     splicepicturescalibrationitem.h \
     splicepicturesbackgrounditem.h \
-    backgrounddodging.h
+    backgrounddodging.h \
+    autostitch.h \
+    pir.h

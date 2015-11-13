@@ -5,6 +5,8 @@
 
 #include <QString>
 #include <QJsonObject>
+#include <QRect>
+#include <QSize>
 
 class QImage;
 class QPixmap;
@@ -13,6 +15,12 @@ class Rational;
 class SplicePicturesImageItem
 {
 public:
+    enum TransformFlag {
+        TRANS_SCALE = 0x01,
+        TRANS_ROTATE = 0x02,
+        TRANS_MOVE = 0x04
+    };
+
     SplicePicturesImageItem();
     SplicePicturesImageItem(const SplicePicturesImageItem &item);
     SplicePicturesImageItem(QJsonObject &json);
@@ -45,6 +53,13 @@ public:
     void setPath(QString path);
     void setRotation(Rational rotation);
     void setZoom(Rational zoom);
+
+    QImage getTransformedImage(TransformFlag flag = (TransformFlag)(TRANS_SCALE | TRANS_ROTATE | TRANS_MOVE));
+    QPixmap getTransformedPixmap(TransformFlag flag = (TransformFlag)(TRANS_SCALE | TRANS_ROTATE | TRANS_MOVE));
+    QImage getTransformedImage(QSize size, TransformFlag flag = (TransformFlag)(TRANS_SCALE | TRANS_ROTATE | TRANS_MOVE));
+    QPixmap getTransformedPixmap(QSize size, TransformFlag flag = (TransformFlag)(TRANS_SCALE | TRANS_ROTATE | TRANS_MOVE));
+    QImage getTransformedImage(QRect range, TransformFlag flag = (TransformFlag)(TRANS_SCALE | TRANS_ROTATE | TRANS_MOVE));
+    QPixmap getTransformedPixmap(QRect range, TransformFlag flag = (TransformFlag)(TRANS_SCALE | TRANS_ROTATE | TRANS_MOVE));
 private:
     int row;
     int col;

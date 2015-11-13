@@ -10,9 +10,17 @@ class QLabel;
 
 #define NUM_ROWS 4
 #define NUM_COLS 4
-#define PIC_WIDTH 100
-#define PIC_HEIGHT 75
-#define MARGIN_RATE 1.0
+#define PIC_WIDTH 163
+#define PIC_HEIGHT 120
+#define MARGIN_RATE 0.1
+
+#define OVERLAP_X 201
+#define OVERLAP_Y 201
+#define SEARCH_REGION_X 20
+#define SEARCH_REGION_Y 20
+#define FEATURE_PADDING_X 81
+#define FEATURE_PADDING_Y 1
+#define CUT_REGION
 
 class SplicePicturesByHand : public QWidget
 {

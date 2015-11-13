@@ -74,6 +74,8 @@ public:
 
     SplicePicturesCalibrationItem *getCalibrationItem(int row, int col);
     QImage * getBackground(int row, int col);
+
+    void autoStitch(QSize overlap, QSize searchRegion, QSize featurePadding);
 protected:
     void paintEvent(QPaintEvent *);
     QSize sizeHint() const;

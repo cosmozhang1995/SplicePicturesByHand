@@ -23,11 +23,13 @@
 #include <QDataStream>
 #include <QMessageBox>
 #include <QFrame>
+#include <QFont>
 
 SplicePicturesByHand::SplicePicturesByHand(QWidget *parent)
     : QWidget(parent), _row(0), _col(0)
 {
     drawLayout();
+    setWindowTitle("Muti-Images Mosaic GUI");
 }
 
 SplicePicturesByHand::~SplicePicturesByHand()
@@ -35,7 +37,7 @@ SplicePicturesByHand::~SplicePicturesByHand()
 }
 
 void SplicePicturesByHand::drawLayout() {
-    panel = new SplicePicturesPanel(NUM_ROWS, NUM_COLS, PIC_WIDTH, PIC_HEIGHT);
+    panel = new SplicePicturesPanel(NUM_ROWS, NUM_COLS, PIC_WIDTH, PIC_HEIGHT, MARGIN_RATE);
     panel->initialize();
     QPushButton *buttonPanelZoomIn = new QPushButton("Zoom In");
     QPushButton *buttonPanelZoomOut = new QPushButton("Zoom Out");
@@ -45,33 +47,52 @@ void SplicePicturesByHand::drawLayout() {
     panelLayout->addWidget(buttonPanelZoomOut, 1, 1, 1, 1);
 
     QLabel *label;
+    QFont *font;
 
-    QHBoxLayout *dodgingLayout = new QHBoxLayout();
+    QVBoxLayout *dodgingLayout = new QVBoxLayout();
+    label = new QLabel("Step 1. De-vignetting:");
+    label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    dodgingLayout->addWidget(label);
+    QHBoxLayout *dodgingLayout1 = new QHBoxLayout();
     QPushButton *buttonLoadBackground = new QPushButton("Load Background");
     QPushButton *buttonGenerateBackground = new QPushButton("Generate Background");
-    QPushButton *buttonDodgingProcess = new QPushButton("Dodging Process");
-    dodgingLayout->addWidget(buttonLoadBackground);
-    dodgingLayout->addWidget(buttonGenerateBackground);
-    dodgingLayout->addWidget(buttonDodgingProcess);
+    QPushButton *buttonDodgingProcess = new QPushButton("De-vignetting Process");
+    dodgingLayout1->addWidget(buttonLoadBackground);
+    dodgingLayout1->addWidget(buttonGenerateBackground);
+    dodgingLayout1->addWidget(buttonDodgingProcess);
+    dodgingLayout->addLayout(dodgingLayout1);
 
-    QHBoxLayout *preCalibrationLayout = new QHBoxLayout();
-    QPushButton *buttonLoadCalibrationSamples = new QPushButton("Load Pre-Calibration Samples");
+    QVBoxLayout *preCalibrationLayout = new QVBoxLayout();
+    label = new QLabel("Step 2. Pre-calibrating:");
+    label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    preCalibrationLayout->addWidget(label);
+    QHBoxLayout *preCalibrationLayout1 = new QHBoxLayout();
+    QHBoxLayout *preCalibrationLayout2 = new QHBoxLayout();
+    QPushButton *buttonLoadCalibrationSamples = new QPushButton("Load Pre-Calibration Images");
     QPushButton *buttonDoPreCalibration = new QPushButton("Pre-Calibrate");
     QPushButton *buttonImportCalibration = new QPushButton("Import Calibration");
     QPushButton *buttonExportCalibration = new QPushButton("Export Calibration");
-    preCalibrationLayout->addWidget(buttonLoadCalibrationSamples);
-    preCalibrationLayout->addWidget(buttonDoPreCalibration);
-    preCalibrationLayout->addWidget(buttonImportCalibration);
-    preCalibrationLayout->addWidget(buttonExportCalibration);
+    preCalibrationLayout1->addWidget(buttonLoadCalibrationSamples);
+    preCalibrationLayout1->addWidget(buttonDoPreCalibration);
+    preCalibrationLayout2->addWidget(buttonImportCalibration);
+    preCalibrationLayout2->addWidget(buttonExportCalibration);
+    preCalibrationLayout->addLayout(preCalibrationLayout1);
+    preCalibrationLayout->addLayout(preCalibrationLayout2);
 
+    QVBoxLayout *dashboardLayout = new QVBoxLayout();
+
+    QVBoxLayout *fileButtonLayout = new QVBoxLayout();
+    label = new QLabel("Step 3. Load Images:");
+    label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    fileButtonLayout->addWidget(label);
+    QHBoxLayout *fileButtonLayout1 = new QHBoxLayout();
     QPushButton *buttonLoadImage = new QPushButton("Load Image");
     QPushButton *buttonRemoveImage = new QPushButton("Remove Image");
     QPushButton *buttonClearImage = new QPushButton("Clear");
-    QVBoxLayout *dashboardLayout = new QVBoxLayout();
-    QHBoxLayout *fileButtonLayout = new QHBoxLayout();
-    fileButtonLayout->addWidget(buttonLoadImage);
-    fileButtonLayout->addWidget(buttonRemoveImage);
-    fileButtonLayout->addWidget(buttonClearImage);
+    fileButtonLayout1->addWidget(buttonLoadImage);
+    fileButtonLayout1->addWidget(buttonRemoveImage);
+    fileButtonLayout1->addWidget(buttonClearImage);
+    fileButtonLayout->addLayout(fileButtonLayout1);
 
     QGridLayout *navLayout = new QGridLayout();
     QPushButton *buttonMoveUp = new QPushButton("↑");
@@ -96,51 +117,79 @@ void SplicePicturesByHand::drawLayout() {
     QGridLayout *paraInputLayout = new QGridLayout();
     label = new QLabel("Offset Step (pixels)");
     label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-    moveStepInput = new QLineEdit("100");
+    moveStepInput = new QLineEdit("1");
     moveStepInput->setMinimumWidth(150);
     paraInputLayout->addWidget(label, 0, 0, 1, 1);
     paraInputLayout->addWidget(moveStepInput, 0, 1, 1, 3);
     label = new QLabel("Scale Step (Fraction)");
     label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-    zoomStepInput = new QLineEdit("1/10");
+    zoomStepInput = new QLineEdit("1/4208");
     paraInputLayout->addWidget(label, 1, 0, 1, 1);
     paraInputLayout->addWidget(zoomStepInput, 1, 1, 1, 3);
-    label = new QLabel("Rotate Step (Fraction)");
+    label = new QLabel("Rotate Step (Degree)");
     label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-    rotateStepInput = new QLineEdit("10");
+    rotateStepInput = new QLineEdit("60/2104");
     paraInputLayout->addWidget(label, 2, 0, 1, 1);
     paraInputLayout->addWidget(rotateStepInput, 2, 1, 1, 3);
 
-    QHBoxLayout *navAndParaLayout = new QHBoxLayout();
-    navAndParaLayout->addLayout(navLayout, 0);
-    navAndParaLayout->addLayout(paraInputLayout, 1);
+    QVBoxLayout *navAndParaLayout = new QVBoxLayout();
+    label = new QLabel("Manual Adjusting:");
+    label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    navAndParaLayout->addWidget(label);
+    QHBoxLayout *navAndParaLayout1 = new QHBoxLayout();
+    navAndParaLayout1->addLayout(navLayout, 0);
+    navAndParaLayout1->addLayout(paraInputLayout, 1);
+    navAndParaLayout->addLayout(navAndParaLayout1);
 
-    QPushButton *autoSpliceButton = new QPushButton("Auto-Splice");
+    QVBoxLayout *autoSpliceLayout = new QVBoxLayout();
+    label = new QLabel("     ");
+    label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    autoSpliceLayout->addWidget(label);
+    font = new QFont();
+    font->setPixelSize(16);
+    QPushButton *autoSpliceButton = new QPushButton("Auto-Mosaic");
+//    autoSpliceButton->setFont(*font);
+    autoSpliceButton->setStyleSheet("QPushButton {font:16px;padding:16px;}");
+    autoSpliceLayout->addWidget(autoSpliceButton);
 
     statusLabel = new QLabel("");
     statusLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     informationLabel = new QLabel("");
     informationLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
 
-    QHBoxLayout *outputButtonLayout = new QHBoxLayout();
+    QVBoxLayout *outputButtonLayout = new QVBoxLayout();
+    label = new QLabel("Save Results:");
+    label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    outputButtonLayout->addWidget(label);
+    QHBoxLayout *outputButtonLayout1 = new QHBoxLayout();
     QPushButton *buttonConfigExport = new QPushButton("Export Configuration");
     QPushButton *buttonConfigImport = new QPushButton("Import Configuration");
-    QPushButton *buttonGenerateImage = new QPushButton("Output Image");
-    outputButtonLayout->addWidget(buttonConfigExport);
-    outputButtonLayout->addWidget(buttonConfigImport);
-    outputButtonLayout->addWidget(buttonGenerateImage);
+    QPushButton *buttonGenerateImage = new QPushButton("Save Result Images");
+    outputButtonLayout1->addWidget(buttonConfigExport);
+    outputButtonLayout1->addWidget(buttonConfigImport);
+    outputButtonLayout1->addWidget(buttonGenerateImage);
+    outputButtonLayout->addLayout(outputButtonLayout1);
 
     dashboardLayout->addLayout(dodgingLayout);
     dashboardLayout->addLayout(preCalibrationLayout);
     dashboardLayout->addLayout(fileButtonLayout);
     dashboardLayout->addLayout(navAndParaLayout);
-    dashboardLayout->addWidget(autoSpliceButton);
+    dashboardLayout->addLayout(autoSpliceLayout);
     dashboardLayout->addWidget(statusLabel);
     dashboardLayout->addWidget(informationLabel);
     dashboardLayout->addLayout(outputButtonLayout);
-    QHBoxLayout *layout = new QHBoxLayout();
-    layout->addLayout(panelLayout);
-    layout->addLayout(dashboardLayout);
+
+    QHBoxLayout *bodyLayout = new QHBoxLayout();
+    bodyLayout->addLayout(panelLayout);
+    bodyLayout->addLayout(dashboardLayout);
+
+    QVBoxLayout *layout = new QVBoxLayout();
+    label = new QLabel("© 2014 Heng Mao Lab. Peking University");
+    font = new QFont();
+    font->setPointSize(9);
+    label->setFont(*font);
+    layout->addLayout(bodyLayout);
+    layout->addWidget(label);
     setLayout(layout);
 
     connect(panel, SIGNAL(onUnitClicked(int,int)), this, SLOT(onPanelUnitClicked(int,int)));
@@ -165,6 +214,7 @@ void SplicePicturesByHand::drawLayout() {
     connect(buttonZoomOut, SIGNAL(clicked(bool)), this, SLOT(onButtonZoonOutClicked()));
     connect(buttonRotateLeft, SIGNAL(clicked(bool)), this, SLOT(onButtonRotateLeftClicked()));
     connect(buttonRotateRight, SIGNAL(clicked(bool)), this, SLOT(onButtonRotateRightClicked()));
+    connect(autoSpliceButton, SIGNAL(clicked(bool)), this, SLOT(onButtonAutoSpliceClicked()));
     connect(buttonConfigExport, SIGNAL(clicked(bool)), this, SLOT(onButtonExportClicked()));
     connect(buttonConfigImport, SIGNAL(clicked(bool)), this, SLOT(onButtonImportClicked()));
     connect(buttonGenerateImage, SIGNAL(clicked(bool)), this, SLOT(onButtonGenerateClicked()));
@@ -313,6 +363,7 @@ void SplicePicturesByHand::onButtonRotateRightClicked() {
 
 void SplicePicturesByHand::onButtonAutoSpliceClicked() {
     if (checkInPreCalibrationMode(true, true)) return;
+    panel->autoStitch(QSize(OVERLAP_X, OVERLAP_Y), QSize(SEARCH_REGION_X, SEARCH_REGION_Y), QSize(FEATURE_PADDING_X, FEATURE_PADDING_Y));
 }
 
 void SplicePicturesByHand::onButtonGenerateClicked() {

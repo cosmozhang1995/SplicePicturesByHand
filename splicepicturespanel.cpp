@@ -6,6 +6,7 @@
 
 #include "limits.h"
 #include "ctime"
+#include "math.h"
 
 #include <QDebug>
 #include <math.h>
@@ -252,24 +253,24 @@ void SplicePicturesPanel::generateFullPixmapResizedAndCut() {
     clock_t _ts = clock();
     if (!fullPixmapResized) return;
     QSize imageSize = fullPixmapResized->size();
-    int imageWidth = imageSize.width();
-    int imageHeight = imageSize.height();
-    int canvasWidth = minimumSizeHint().width();
-    int canvasHeight = minimumSizeHint().height();
-    int zoomOffsetX = canvasWidth / 2 - zoomCenterX;
-    int zoomOffsetY = canvasHeight / 2 - zoomCenterY;
-    int drawMarginWidth = marginRate * viewZoom * uwidth;
-    int drawMarginHeight = marginRate * viewZoom * uheight;
+    double imageWidth = imageSize.width();
+    double imageHeight = imageSize.height();
+    double canvasWidth = minimumSizeHint().width();
+    double canvasHeight = minimumSizeHint().height();
+    double zoomOffsetX = canvasWidth / 2.0 - zoomCenterX;
+    double zoomOffsetY = canvasHeight / 2.0 - zoomCenterY;
+    double drawMarginWidth = marginRate * viewZoom * uwidth;
+    double drawMarginHeight = marginRate * viewZoom * uheight;
     finalDrawStartX = 0;
     finalDrawStartY = 0;
-    int cutStartX = - zoomOffsetX - drawMarginWidth - globalDrawStartX * viewZoom * imageZoom;
-    int cutStartY = - zoomOffsetY - drawMarginHeight - globalDrawStartY * viewZoom * imageZoom;
+    double cutStartX = - zoomOffsetX - drawMarginWidth - globalDrawStartX * viewZoom * imageZoom;
+    double cutStartY = - zoomOffsetY - drawMarginHeight - globalDrawStartY * viewZoom * imageZoom;
     if (cutStartX < 0) { finalDrawStartX -= cutStartX; cutStartX = 0; }
     if (cutStartY < 0) { finalDrawStartY -= cutStartY; cutStartY = 0; }
-    int finalDrawEndX = finalDrawStartX + imageWidth - cutStartX;
-    int finalDrawEndY = finalDrawStartY + imageHeight - cutStartY;
-    int cutEndX = imageWidth;
-    int cutEndY = imageHeight;
+    double finalDrawEndX = finalDrawStartX + imageWidth - cutStartX;
+    double finalDrawEndY = finalDrawStartY + imageHeight - cutStartY;
+    double cutEndX = imageWidth;
+    double cutEndY = imageHeight;
     if (finalDrawEndX > canvasWidth) { cutEndX -= finalDrawEndX - canvasWidth; finalDrawEndX = canvasWidth; }
     if (finalDrawEndY > canvasHeight) { cutEndY -= finalDrawEndY - canvasHeight; finalDrawEndY = canvasHeight; }
     finalDrawWidth = cutEndX - cutStartX;
@@ -287,43 +288,62 @@ void SplicePicturesPanel::generateFullPixmapCutAndResized() {
     double scaleRate = imageZoom * viewZoom;
     if (!fullPixmap) return;
     QSize imageSize = fullPixmap->size();
-    int imageWidth = imageSize.width();
-    int imageHeight = imageSize.height();
-    int canvasWidth = minimumSizeHint().width() / scaleRate;
-    int canvasHeight = minimumSizeHint().height() / scaleRate;
-    int zoomOffsetX = canvasWidth / 2.0 - zoomCenterX / scaleRate;
-    int zoomOffsetY = canvasHeight / 2.0 - zoomCenterY / scaleRate;
-    int drawMarginWidth = marginRate * uwidth / imageZoom;
-    int drawMarginHeight = marginRate * uheight / imageZoom;
+    double imageWidth = imageSize.width();
+    double imageHeight = imageSize.height();
+    double canvasWidth = minimumSizeHint().width() / scaleRate;
+    double canvasHeight = minimumSizeHint().height() / scaleRate;
+    double zoomOffsetX = canvasWidth / 2.0 - zoomCenterX / scaleRate;
+    double zoomOffsetY = canvasHeight / 2.0 - zoomCenterY / scaleRate;
+    double drawMarginWidth = marginRate * uwidth / imageZoom;
+    double drawMarginHeight = marginRate * uheight / imageZoom;
     finalDrawStartX = 0;
     finalDrawStartY = 0;
-    int cutStartX = - zoomOffsetX - drawMarginWidth - globalDrawStartX;
-    int cutStartY = - zoomOffsetY - drawMarginHeight - globalDrawStartY;
+    double cutStartX = - zoomOffsetX - drawMarginWidth - globalDrawStartX;
+    double cutStartY = - zoomOffsetY - drawMarginHeight - globalDrawStartY;
     if (cutStartX < 0) { finalDrawStartX -= cutStartX; cutStartX = 0; }
     if (cutStartY < 0) { finalDrawStartY -= cutStartY; cutStartY = 0; }
-    int finalDrawEndX = finalDrawStartX + imageWidth - cutStartX;
-    int finalDrawEndY = finalDrawStartY + imageHeight - cutStartY;
-    int cutEndX = imageWidth;
-    int cutEndY = imageHeight;
+    double finalDrawEndX = finalDrawStartX + imageWidth - cutStartX;
+    double finalDrawEndY = finalDrawStartY + imageHeight - cutStartY;
+    double cutEndX = imageWidth;
+    double cutEndY = imageHeight;
     if (finalDrawEndX > canvasWidth) { cutEndX -= finalDrawEndX - canvasWidth; finalDrawEndX = canvasWidth; }
     if (finalDrawEndY > canvasHeight) { cutEndY -= finalDrawEndY - canvasHeight; finalDrawEndY = canvasHeight; }
     finalDrawWidth = cutEndX - cutStartX;
     finalDrawHeight = cutEndY - cutStartY;
+    finalDrawWidth = ceil(finalDrawWidth) + 1;
+    finalDrawHeight = ceil(finalDrawHeight) + 1;
+    if (finalDrawWidth < 0) finalDrawWidth = 0;
+    if (finalDrawHeight < 0) finalDrawHeight = 0;
     if (fullPixmapCutAndResized) delete fullPixmapCutAndResized;
     QMatrix matrix;
     matrix.scale(scaleRate, scaleRate);
-    fullPixmapCutAndResized = new QPixmap(fullPixmap
-                                          ->copy(cutStartX, cutStartY, finalDrawWidth, finalDrawHeight)
-                                          .transformed(matrix));
-    finalPixmap = fullPixmapCutAndResized;
+    QPixmap transPix = fullPixmap
+            ->copy(cutStartX, cutStartY, finalDrawWidth, finalDrawHeight)
+            .transformed(matrix);
     finalDrawStartX *= scaleRate;
     finalDrawStartY *= scaleRate;
-    finalDrawWidth *= scaleRate;
-    finalDrawHeight *= scaleRate;
+    finalDrawWidth = finalDrawWidth * scaleRate;
+    finalDrawHeight = finalDrawHeight * scaleRate;
+    canvasWidth = canvasWidth * scaleRate;
+    canvasHeight = canvasHeight * scaleRate;
+    cutStartX = floor((cutStartX - floor(cutStartX)) * scaleRate);
+    cutStartY = floor((cutStartY - floor(cutStartY)) * scaleRate);
+//    qDebug() << finalDrawStartX << finalDrawStartY << cutStartX << cutStartY;
+    double cutWidth = transPix.size().width();
+    double cutHeight = transPix.size().height();
+    finalDrawEndX = finalDrawStartX + transPix.size().width();
+    finalDrawEndY = finalDrawStartY + transPix.size().height();
+    if (finalDrawEndX > canvasWidth) { cutWidth -= finalDrawEndX - canvasWidth; finalDrawEndX = canvasWidth; }
+    if (finalDrawEndY > canvasHeight) { cutHeight -= finalDrawEndY - canvasHeight; finalDrawEndY = canvasHeight; }
+    qDebug() << canvasWidth << canvasHeight << cutWidth << cutHeight;
+    if (cutWidth < 0) cutWidth = 0;
+    if (cutHeight < 0) cutHeight = 0;
+    fullPixmapCutAndResized = new QPixmap(transPix.copy(cutStartX, cutStartY, cutWidth, cutHeight));
+    finalDrawWidth = cutWidth;
+    finalDrawHeight = cutHeight;
+    finalPixmap = fullPixmapCutAndResized;
     clock_t _te = clock();
     qDebug() << "generate cut&resized completed, cost:" << (long)(_ts-_te);
-//    fullPixmap->save("/Users/cosmozhang/Desktop/1.tiff");
-//    finalPixmap->save("/Users/cosmozhang/Desktop/2.tiff");
 }
 
 QPixmap * SplicePicturesPanel::getTransformedPixmap(int row, int col) {

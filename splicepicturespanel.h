@@ -33,8 +33,8 @@ public:
     void drawLayout();
 //    void setGrids(int rows, int cols);
 //    void setUnitSize(int uwidth, int uheight);
-    void setViewZoom(double viewZoom);
-    void setZoomCenter(int x, int y);
+    void setViewZoom(double viewZoom, bool withUpdate = true);
+    void setZoomCenter(int x, int y, bool withUpdate = true);
     int getGridRows();
     int getGridCols();
     int getUnitWidth();
@@ -112,6 +112,9 @@ private:
     QPixmap *fullPixmap;
     QPixmap *fullPixmapResized;
     QPixmap *fullPixmapResizedAndCut;
+    QPixmap *fullPixmapCut;
+    QPixmap *fullPixmapCutAndResized;
+    QPixmap *finalPixmap;
     int globalDrawStartX;
     int globalDrawStartY;
     int globalDrawWidth;
@@ -123,6 +126,8 @@ private:
     void redrawFullPixmap();
     void generateFullPixmapResized();
     void generateFullPixmapResizedAndCut();
+    void generateFullPixmapCut();
+    void generateFullPixmapCutAndResized();
 };
 
 #endif // SPLICEPICTURESPANEL_H

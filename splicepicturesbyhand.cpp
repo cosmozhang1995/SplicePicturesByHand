@@ -430,15 +430,15 @@ bool SplicePicturesByHand::loadImages(bool emptyFirst, int row, int col) {
     if (!filePathList.empty()) {
         imagePath = filePathList.at(0);
         if (emptyFirst) {
-            panel->removeAllImages();
+            panel->removeAllImages(false);
         }
     }
     if (row >= 0 && col >= 0) {
         for (QStringList::iterator iter = filePathList.begin(); iter < filePathList.end(); iter++) {
             QString filePath = *iter;
             if (filePath != "") {
-                panel->removeImage(row, col);
-                panel->loadImage(row, col, filePath);
+                panel->removeImage(row, col, false);
+                panel->loadImage(row, col, filePath, true, false);
                 if (col >= NUM_COLS - 1) {
                     col = 0;
                     row ++;
@@ -470,7 +470,7 @@ bool SplicePicturesByHand::loadImages(bool emptyFirst, int row, int col) {
         for (QStringList::iterator iter = filePathList.begin(); iter < filePathList.end(); iter++) {
             QString filePath = *iter;
             if (filePath != "") {
-                panel->loadImage(_row, _col, filePath);
+                panel->loadImage(_row, _col, filePath, true, false);
                 if (_col >= NUM_COLS - 1) {
                     _col = 0;
                     _row ++;
@@ -483,6 +483,7 @@ bool SplicePicturesByHand::loadImages(bool emptyFirst, int row, int col) {
             }
         }
     }
+    panel->refresh();
     loadStatus();
     return !filePathList.empty();
 }

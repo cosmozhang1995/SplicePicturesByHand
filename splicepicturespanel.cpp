@@ -77,7 +77,6 @@ QSize SplicePicturesPanel::minimumSizeHint() const {
 }
 
 void SplicePicturesPanel::paintEvent(QPaintEvent *) {
-    qDebug() << "paint start";
     int drawUWidth = uwidth * viewZoom;
     int drawUHeight = uheight * viewZoom;
     int drawMarginWidth = marginRate * viewZoom * uwidth;
@@ -112,7 +111,6 @@ void SplicePicturesPanel::paintEvent(QPaintEvent *) {
         painter.drawPixmap(finalDrawStartX, finalDrawStartY, finalDrawWidth, finalDrawHeight,
                            *finalPixmap);
     }
-    qDebug() << "paint end";
 }
 
 void SplicePicturesPanel::drawLayout() {
@@ -131,8 +129,11 @@ void SplicePicturesPanel::setViewZoom(double zoom, bool withUpdate) {
     this->viewZoom = zoom;
     setZoomCenter(zoomCenterX * zoom / oldViewZoom, zoomCenterY * zoom / oldViewZoom, false);
     if (withUpdate) {
-//        generateFullPixmapResized();
-        generateFullPixmapCutAndResized();
+        if (imageZoom * viewZoom < 1) {
+            generateFullPixmapResized();
+        } else {
+            generateFullPixmapCutAndResized();
+        }
         update();
     }
 }
@@ -140,8 +141,11 @@ void SplicePicturesPanel::setZoomCenter(int x, int y, bool withUpdate) {
     zoomCenterX = std::min(std::max(x, minimumSizeHint().width() / 2), (int)(minimumSizeHint().width() * (viewZoom - 0.5f)));
     zoomCenterY = std::min(std::max(y, minimumSizeHint().height() / 2), (int)(minimumSizeHint().height() * (viewZoom - 0.5f)));
     if (withUpdate) {
-//        generateFullPixmapResizedAndCut();
-        generateFullPixmapCutAndResized();
+        if (imageZoom * viewZoom < 1) {
+            generateFullPixmapResizedAndCut();
+        } else {
+            generateFullPixmapCutAndResized();
+        }
         update();
     }
 }
@@ -170,27 +174,27 @@ QPixmap *SplicePicturesPanel::getFullPixmap(bool repaint) {
     int globalDrawStartX = INT_MAX, globalDrawStartY = INT_MAX;
     int globalDrawEndX = -INT_MAX, globalDrawEndY = -INT_MAX;
     QVector<QPixmap> pixmaps;
-    QVector<int*> pixargs;
+    QVector<double*> pixargs;
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
-        int drawWidth = (double)iter->getZoom() * (double)iter->getWidth();
-        int drawHeight = (double)iter->getZoom() * (double)iter->getHeight();
-        int drawOffsetX = (double)iter->getX();
-        int drawOffsetY = (double)iter->getY();
-        int drawStartX = iter->getCol() * uwidth / imageZoom + (uwidth / imageZoom - drawWidth) / 2 + drawOffsetX;
-        int drawStartY = iter->getRow() * uheight / imageZoom + (uheight / imageZoom - drawHeight) / 2 + drawOffsetY;
-        int drawCenterX = drawStartX + drawWidth / 2;
-        int drawCenterY = drawStartY + drawHeight / 2;
+        double drawWidth = (double)iter->getZoom() * (double)iter->getWidth();
+        double drawHeight = (double)iter->getZoom() * (double)iter->getHeight();
+        double drawOffsetX = iter->getX();
+        double drawOffsetY = iter->getY();
+        double drawStartX = iter->getCol() * uwidth / imageZoom + (uwidth / imageZoom - drawWidth) / 2 + drawOffsetX;
+        double drawStartY = iter->getRow() * uheight / imageZoom + (uheight / imageZoom - drawHeight) / 2 + drawOffsetY;
+        double drawCenterX = drawStartX + drawWidth / 2;
+        double drawCenterY = drawStartY + drawHeight / 2;
         QPixmap transformedPix = iter->getTransformedPixmap();
         pixmaps.push_back(transformedPix);
-        int resizedDrawWidth = transformedPix.size().width();
-        int resizedDrawHeight = transformedPix.size().height();
+        double resizedDrawWidth = transformedPix.size().width();
+        double resizedDrawHeight = transformedPix.size().height();
         drawWidth = resizedDrawWidth;
         drawHeight = resizedDrawHeight;
         drawStartX = drawCenterX - drawWidth / 2;
         drawStartY = drawCenterY - drawHeight / 2;
-        int drawEndX = drawStartX + drawWidth;
-        int drawEndY = drawStartY + drawHeight;
-        int *ap = new int[4];
+        double drawEndX = drawStartX + drawWidth;
+        double drawEndY = drawStartY + drawHeight;
+        double *ap = new double[4];
         ap[0] = drawStartX;
         ap[1] = drawStartY;
         ap[2] = drawWidth;
@@ -205,14 +209,14 @@ QPixmap *SplicePicturesPanel::getFullPixmap(bool repaint) {
     pix->fill(Qt::transparent);
     QPainter painter(pix);
     QVector<QPixmap>::iterator iterp = pixmaps.begin();
-    QVector<int*>::iterator itera = pixargs.begin();
+    QVector<double*>::iterator itera = pixargs.begin();
     for (; iterp != pixmaps.end() && itera != pixargs.end(); iterp++, itera++) {
         QPixmap *pixmap = (QPixmap *)iterp;
-        int *ap = *(int **)itera;
-        int drawStartX = ap[0] - globalDrawStartX;
-        int drawStartY = ap[1] - globalDrawStartY;
-        int drawWidth = ap[2];
-        int drawHeight = ap[3];
+        double *ap = *(double **)itera;
+        double drawStartX = ap[0] - globalDrawStartX;
+        double drawStartY = ap[1] - globalDrawStartY;
+        double drawWidth = ap[2];
+        double drawHeight = ap[3];
         painter.drawPixmap(drawStartX, drawStartY,
                            drawWidth, drawHeight,
                            *pixmap);
@@ -227,16 +231,16 @@ QPixmap *SplicePicturesPanel::getFullPixmap(bool repaint) {
     return fullPixmap;
 }
 void SplicePicturesPanel::redrawFullPixmap() {
-    qDebug() << "redraw full pixmap begin";
     clock_t _ts = clock();
     getFullPixmap(true);
     clock_t _te = clock();
-    qDebug() << "redraw full pixmap completed, cost:" << (long)(_ts-_te);
-//    generateFullPixmapResized();
-    generateFullPixmapCutAndResized();
+    if (imageZoom * viewZoom < 1) {
+        generateFullPixmapResized();
+    } else {
+        generateFullPixmapCutAndResized();
+    }
 }
 void SplicePicturesPanel::generateFullPixmapResized() {
-    qDebug() << "generate resized pixmap begin";
     clock_t _ts = clock();
     if (!fullPixmap) return;
     double scaleRate = viewZoom * imageZoom;
@@ -245,11 +249,9 @@ void SplicePicturesPanel::generateFullPixmapResized() {
     if (fullPixmapResized) delete fullPixmapResized;
     fullPixmapResized = new QPixmap(fullPixmap->transformed(matrix));
     clock_t _te = clock();
-    qDebug() << "generate resized completed, cost:" << (long)(_ts-_te);
     generateFullPixmapResizedAndCut();
 }
 void SplicePicturesPanel::generateFullPixmapResizedAndCut() {
-    qDebug() << "generate resized&cut pixmap begin";
     clock_t _ts = clock();
     if (!fullPixmapResized) return;
     QSize imageSize = fullPixmapResized->size();
@@ -280,10 +282,8 @@ void SplicePicturesPanel::generateFullPixmapResizedAndCut() {
                                                                   finalDrawWidth, finalDrawHeight));
     finalPixmap = fullPixmapResizedAndCut;
     clock_t _te = clock();
-    qDebug() << "generate resized&cut completed, cost:" << (long)(_ts-_te);
 }
 void SplicePicturesPanel::generateFullPixmapCutAndResized() {
-    qDebug() << "generate cut&resized pixmap begin";
     clock_t _ts = clock();
     double scaleRate = imageZoom * viewZoom;
     if (!fullPixmap) return;
@@ -328,14 +328,12 @@ void SplicePicturesPanel::generateFullPixmapCutAndResized() {
     canvasHeight = canvasHeight * scaleRate;
     cutStartX = floor((cutStartX - floor(cutStartX)) * scaleRate);
     cutStartY = floor((cutStartY - floor(cutStartY)) * scaleRate);
-//    qDebug() << finalDrawStartX << finalDrawStartY << cutStartX << cutStartY;
     double cutWidth = transPix.size().width();
     double cutHeight = transPix.size().height();
     finalDrawEndX = finalDrawStartX + transPix.size().width();
     finalDrawEndY = finalDrawStartY + transPix.size().height();
     if (finalDrawEndX > canvasWidth) { cutWidth -= finalDrawEndX - canvasWidth; finalDrawEndX = canvasWidth; }
     if (finalDrawEndY > canvasHeight) { cutHeight -= finalDrawEndY - canvasHeight; finalDrawEndY = canvasHeight; }
-    qDebug() << canvasWidth << canvasHeight << cutWidth << cutHeight;
     if (cutWidth < 0) cutWidth = 0;
     if (cutHeight < 0) cutHeight = 0;
     fullPixmapCutAndResized = new QPixmap(transPix.copy(cutStartX, cutStartY, cutWidth, cutHeight));
@@ -343,7 +341,6 @@ void SplicePicturesPanel::generateFullPixmapCutAndResized() {
     finalDrawHeight = cutHeight;
     finalPixmap = fullPixmapCutAndResized;
     clock_t _te = clock();
-    qDebug() << "generate cut&resized completed, cost:" << (long)(_ts-_te);
 }
 
 QPixmap * SplicePicturesPanel::getTransformedPixmap(int row, int col) {
@@ -409,7 +406,7 @@ void SplicePicturesPanel::wheelEvent(QWheelEvent *event) {
 void SplicePicturesPanel::onDragEvent(int x1, int y1, int x2, int y2) {
 }
 
-void SplicePicturesPanel::loadImage(int row, int col, QString filePath, bool removeIfExists) {
+void SplicePicturesPanel::loadImage(int row, int col, QString filePath, bool removeIfExists, bool withUpdate) {
     if (removeIfExists) removeImage(row, col);
     SplicePicturesImageItem item(row, col, filePath);
     QImage *backgroundImage = getBackground(row, col);
@@ -433,33 +430,34 @@ void SplicePicturesPanel::loadImage(int row, int col, QString filePath, bool rem
             imageZoom = (double)uheight / (double)item.getHeight();
         }
     }
-    redrawFullPixmap();
-    update();
+    if (withUpdate) refresh();
 }
-bool SplicePicturesPanel::removeImage(int row, int col) {
+bool SplicePicturesPanel::removeImage(int row, int col, bool withUpdate) {
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
         if (iter->getRow() == row && iter->getCol() == col) {
             imageList.erase(iter);
-            redrawFullPixmap();
-            update();
+            if (withUpdate) refresh();
             return true;
         }
     }
     return false;
 }
-bool SplicePicturesPanel::removeLastImage() {
+bool SplicePicturesPanel::removeLastImage(bool withUpdate) {
     if (imageList.empty()) return false;
     imageList.pop_back();
-    redrawFullPixmap();
-    update();
+    if (withUpdate) refresh();
     return true;
 }
-bool SplicePicturesPanel::removeAllImages() {
+bool SplicePicturesPanel::removeAllImages(bool withUpdate) {
     if (imageList.empty()) return false;
     imageList.clear();
+    if (withUpdate) refresh();
+    return true;
+}
+
+void SplicePicturesPanel::refresh() {
     redrawFullPixmap();
     update();
-    return true;
 }
 
 QJsonDocument SplicePicturesPanel::getConfiguration() {

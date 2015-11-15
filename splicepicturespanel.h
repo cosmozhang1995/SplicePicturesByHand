@@ -41,10 +41,12 @@ public:
     int getUnitHeight();
     double getZoom();
     QPoint getZoomCenter();
-    void loadImage(int row, int col, QString filePath, bool removeIfExists = true);
-    bool removeImage(int row, int col);
-    bool removeLastImage();
-    bool removeAllImages();
+    void loadImage(int row, int col, QString filePath, bool removeIfExists = true, bool withUpdate = true);
+    bool removeImage(int row, int col, bool withUpdate = true);
+    bool removeLastImage(bool withUpdate = true);
+    bool removeAllImages(bool withUpdate = true);
+
+    void refresh();
 
     QJsonDocument getConfiguration();
     void loadConfiguration(QJsonDocument configuration);

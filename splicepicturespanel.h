@@ -68,7 +68,7 @@ public:
     SplicePicturesImageItem *selectImage(int row, int col);
     SplicePicturesImageItem *currentImage();
     QPixmap *getFullPixmap(bool repaint = false);
-    QPixmap *getTransformedPixmap(int row, int col);
+    QPixmap getTransformedPixmap(int row, int col, bool &success);
     void move(int x, int y);
     void rotate(Rational degree);
     void zoom(Rational rate);

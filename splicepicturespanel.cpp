@@ -45,6 +45,11 @@ SplicePicturesPanel::SplicePicturesPanel(int rows, int cols, int uwidth, int uhe
 }
 
 SplicePicturesPanel::~SplicePicturesPanel() {
+    if (fullPixmap) delete fullPixmap;
+    if (fullPixmapResized) delete fullPixmapResized;
+    if (fullPixmapResizedAndCut) delete fullPixmapResizedAndCut;
+    if (fullPixmapCut) delete fullPixmapCut;
+    if (fullPixmapCutAndResized) delete fullPixmapCutAndResized;
 }
 
 void SplicePicturesPanel::initialize() {
@@ -231,9 +236,7 @@ QPixmap *SplicePicturesPanel::getFullPixmap(bool repaint) {
     return fullPixmap;
 }
 void SplicePicturesPanel::redrawFullPixmap() {
-    clock_t _ts = clock();
     getFullPixmap(true);
-    clock_t _te = clock();
     if (imageZoom * viewZoom < 1) {
         generateFullPixmapResized();
     } else {
@@ -241,18 +244,15 @@ void SplicePicturesPanel::redrawFullPixmap() {
     }
 }
 void SplicePicturesPanel::generateFullPixmapResized() {
-    clock_t _ts = clock();
     if (!fullPixmap) return;
     double scaleRate = viewZoom * imageZoom;
     QMatrix matrix;
     matrix.scale(scaleRate, scaleRate);
     if (fullPixmapResized) delete fullPixmapResized;
     fullPixmapResized = new QPixmap(fullPixmap->transformed(matrix));
-    clock_t _te = clock();
     generateFullPixmapResizedAndCut();
 }
 void SplicePicturesPanel::generateFullPixmapResizedAndCut() {
-    clock_t _ts = clock();
     if (!fullPixmapResized) return;
     QSize imageSize = fullPixmapResized->size();
     double imageWidth = imageSize.width();
@@ -281,10 +281,8 @@ void SplicePicturesPanel::generateFullPixmapResizedAndCut() {
     fullPixmapResizedAndCut = new QPixmap(fullPixmapResized->copy(cutStartX, cutStartY,
                                                                   finalDrawWidth, finalDrawHeight));
     finalPixmap = fullPixmapResizedAndCut;
-    clock_t _te = clock();
 }
 void SplicePicturesPanel::generateFullPixmapCutAndResized() {
-    clock_t _ts = clock();
     double scaleRate = imageZoom * viewZoom;
     if (!fullPixmap) return;
     QSize imageSize = fullPixmap->size();
@@ -340,20 +338,17 @@ void SplicePicturesPanel::generateFullPixmapCutAndResized() {
     finalDrawWidth = cutWidth;
     finalDrawHeight = cutHeight;
     finalPixmap = fullPixmapCutAndResized;
-    clock_t _te = clock();
 }
 
-QPixmap * SplicePicturesPanel::getTransformedPixmap(int row, int col) {
+QPixmap SplicePicturesPanel::getTransformedPixmap(int row, int col, bool &success) {
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
         if (iter->getRow() == row && iter->getCol() == col) {
-            QMatrix matrix;
-            matrix.scale((double)iter->getZoom(), (double)iter->getZoom());
-            matrix.rotate((double)iter->getRotation());
-            matrix.translate(iter->getX(), iter->getY());
-            return new QPixmap(iter->getPixmap()->transformed(matrix));
+            success = true;
+            return iter->getTransformedPixmap();
         }
     }
-    return NULL;
+    success = false;
+    return QPixmap();
 }
 
 void SplicePicturesPanel::mousePressEvent(QMouseEvent *event) {
@@ -612,29 +607,46 @@ QImage * SplicePicturesPanel::getBackground(int row, int col) {
 
 void SplicePicturesPanel::autoStitch(QSize overlap, QSize searchRegion, QSize featurePadding) {
     AutoStitch::stitchImages(imageList, overlap, searchRegion, featurePadding);
-    int actualWidth = uwidth / imageZoom;
-    int actualHeight = uheight / imageZoom;
-    SplicePicturesImageItem ***items = new SplicePicturesImageItem **;
+    double actualWidth = uwidth / imageZoom;
+    double actualHeight = uheight / imageZoom;
+    SplicePicturesImageItem ***items = new SplicePicturesImageItem **[rows];
     for (int r = 0; r < rows; r++) {
-        items[r] = new SplicePicturesImageItem *;
+        items[r] = new SplicePicturesImageItem *[cols];
         for (int c = 0; c < cols; c++) items[r][c] = NULL;
     }
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
         items[iter->getRow()][iter->getCol()] = (SplicePicturesImageItem *)iter;
     }
+    int accOffsetY = 0, accOffsetX = 0, lastOffsetX = 0, lastOffsetY = 0, offsetX = 0, offsetY = 0;
     for (int r = 0; r < rows; r++) {
-        int accOffsetX = 0;
-        int deltaX1 = actualWidth - items[r][0]->getImage()->size().width(), deltaX2;
-        for (int c = 1; c < cols; c++) {
-            if (c > 1) deltaX1 = deltaX2;
+        accOffsetX = 0;
+        lastOffsetX = 0;
+        for (int c = 0; c < cols; c++) {
             SplicePicturesImageItem *item = items[r][c];
-            deltaX2 = actualWidth - item->getImage()->size().width();
-            accOffsetX += deltaX2 / 2 + deltaX1 / 2 + (int)((deltaX1 % 2) && (deltaX2 % 2));
+            if (item == NULL) continue;
+            offsetX = item->getImage()->size().width() - actualWidth;
+            accOffsetX += offsetX / 2 + lastOffsetX;
+            lastOffsetX = offsetX - offsetX / 2;
             item->setX(item->getX() + accOffsetX);
         }
     }
+    for (int c = 0; c < cols; c++) {
+        accOffsetY = 0;
+        lastOffsetY = 0;
+        for (int r = 0; r < rows; r++) {
+            SplicePicturesImageItem *item = items[r][c];
+            if (item == NULL) continue;
+            offsetY = actualHeight - item->getImage()->size().height();
+            accOffsetY += offsetY / 2 + lastOffsetY;
+            lastOffsetY = offsetY - offsetY / 2;
+            item->setX(item->getX() + accOffsetY);
+        }
+    }
+    qDebug() << "calibrated:";
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
         qDebug() << QString("%1,%2  ---  x = %3, y = %4").arg(iter->getRow()).arg(iter->getCol()).arg(iter->getX()).arg(iter->getY());
     }
+    for (int r = 0; r < rows; r++) delete [](items[r]); delete []items;
+    redrawFullPixmap();
     update();
 }

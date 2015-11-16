@@ -37,7 +37,7 @@ SplicePicturesByHand::~SplicePicturesByHand()
 }
 
 void SplicePicturesByHand::drawLayout() {
-    panel = new SplicePicturesPanel(NUM_ROWS, NUM_COLS, PIC_WIDTH, PIC_HEIGHT, MARGIN_RATE);
+    panel = new SplicePicturesPanel(NUM_ROWS, NUM_COLS, PIC_WIDTH, PIC_HEIGHT, MARGIN_RATE, 1.0, this);
     panel->initialize();
     QPushButton *buttonPanelZoomIn = new QPushButton("Zoom In");
     QPushButton *buttonPanelZoomOut = new QPushButton("Zoom Out");
@@ -376,14 +376,25 @@ void SplicePicturesByHand::onButtonGenerateClicked() {
 //        pix->save(filePath);
 //    }
     static QString defaultPath = "/Users/cosmozhang/Desktop/Untitled.bmp";
+    qDebug() << 1;
     QString filePath = QFileDialog::getSaveFileName(0, "Save the Completed Image", defaultPath, "Images (*.bmp)");
     if (filePath != "") {
         QDir dir = QFileInfo(filePath).absoluteDir();
+        qDebug() << 2;
         defaultPath = dir.absoluteFilePath("");
+        qDebug() << 3;
         panel->getFullPixmap()->save(dir.absoluteFilePath("full.tiff"));
+        qDebug() << 4;
         for (int r = 0; r < NUM_ROWS; r++) {
+            qDebug() << "4.1";
             for (int c = 0; c < NUM_COLS; c++) {
-                panel->getTransformedPixmap(r, c)->save(dir.absoluteFilePath(QString("%1.tiff").arg(r * 4 + c + 1)));
+                qDebug() << "4.1.1";
+                bool success;
+                qDebug() << "4.1.2";
+                QPixmap pix = panel->getTransformedPixmap(r, c, success);
+                qDebug() << "4.1.3";
+                if (success) pix.save(dir.absoluteFilePath(QString("%1.tiff").arg(r * 4 + c + 1)));
+                qDebug() << "4.1.4";
             }
         }
     }

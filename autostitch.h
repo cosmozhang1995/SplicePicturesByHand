@@ -1,7 +1,7 @@
 #ifndef AUTOSTITCH_H
 #define AUTOSTITCH_H
 
-#define STITCH_SAVE_CORR
+//#define STITCH_SAVE_CORR
 
 #include <QPoint>
 #include <QSize>

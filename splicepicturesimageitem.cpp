@@ -14,8 +14,12 @@ SplicePicturesImageItem::SplicePicturesImageItem()
 {
 }
 SplicePicturesImageItem::SplicePicturesImageItem(const SplicePicturesImageItem &item)
-    : row(item.row), col(item.col), image(item.image), pixmap(item.pixmap), width(item.width), height(item.height), x(item.x), y(item.y), path(item.path), rotation(item.rotation), zoom(item.zoom)
+    : row(item.row), col(item.col), width(item.width), height(item.height), x(item.x), y(item.y), path(item.path), rotation(item.rotation), zoom(item.zoom)
 {
+    if (item.image) image = new QImage(*item.image);
+    else image = NULL;
+    if (item.pixmap) pixmap = new QPixmap(*item.pixmap);
+    else pixmap = NULL;
 }
 SplicePicturesImageItem::SplicePicturesImageItem(QJsonObject &json) {
     row = json.take("row").toInt();
@@ -49,6 +53,10 @@ SplicePicturesImageItem::SplicePicturesImageItem(int row, int col, QString path)
 //    : row(row), col(col), image(image), pixmap(pixmap), path(path), width(width), height(height), x(x), y(y), rotation(0), zoom(1)
 //{
 //}
+SplicePicturesImageItem::~SplicePicturesImageItem() {
+    if (pixmap) delete pixmap;
+    if (image) delete image;
+}
 
 int SplicePicturesImageItem::getRow() { return row; }
 int SplicePicturesImageItem::getCol() { return col; }
@@ -64,8 +72,8 @@ Rational SplicePicturesImageItem::getZoom() const { return zoom; }
 
 void SplicePicturesImageItem::setRow(int row) { this->row = row; }
 void SplicePicturesImageItem::setCol(int col) { this->col = col; }
-void SplicePicturesImageItem::setImage(QImage *image) { this->image = image; }
-void SplicePicturesImageItem::setPixmap(QPixmap *pixmap) { this->pixmap = pixmap; }
+void SplicePicturesImageItem::setImage(QImage *image) { if (image == this->image) return; if (this->image) delete this->image; this->image = image; }
+void SplicePicturesImageItem::setPixmap(QPixmap *pixmap) { if (pixmap == this->pixmap) return; if (this->pixmap) delete this->pixmap; this->pixmap = pixmap; }
 void SplicePicturesImageItem::setWidth(int width) { this->width = width; }
 void SplicePicturesImageItem::setHeight(int height) { this->height = height; }
 void SplicePicturesImageItem::setX(int x) { this->x = x; }

@@ -8,6 +8,7 @@ class SplicePicturesBackgroundItem
 public:
     SplicePicturesBackgroundItem();
     SplicePicturesBackgroundItem(int row, int col, QImage *image);
+    ~SplicePicturesBackgroundItem();
 
     void setRow(int row);
     void setCol(int col);

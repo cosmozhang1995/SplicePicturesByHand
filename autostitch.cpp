@@ -155,8 +155,8 @@ void AutoStitch::stitchImages(QVector<SplicePicturesImageItem> &imageList, QSize
 
     /* prepare item array */
     qDebug() << "item array prepare start";
-    SplicePicturesImageItem ***items = new SplicePicturesImageItem**;
-    for (int r = 0; r < rows; r++) items[r] = new SplicePicturesImageItem*;
+    SplicePicturesImageItem ***items = new SplicePicturesImageItem**[rows];
+    for (int r = 0; r < rows; r++) { items[r] = new SplicePicturesImageItem*[cols]; for (int c = 0; c < cols; c++) items[r][c] = NULL; }
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
         int row = iter->getRow(),
             col = iter->getCol();
@@ -166,8 +166,8 @@ void AutoStitch::stitchImages(QVector<SplicePicturesImageItem> &imageList, QSize
 
     /* stitch images for each row */
     qDebug() << "stitch single start";
-    QPoint ***offsets = new QPoint**;
-    for (int r = 0; r < rows; r++) offsets[r] = new QPoint*;
+    QPoint ***offsets = new QPoint**[rows];
+    for (int r = 0; r < rows; r++) { offsets[r] = new QPoint*[cols - 1]; for (int c = 0; c < cols - 1; c++) offsets[r][c] = NULL; }
     QImage image1, image2;
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < cols - 1; c++) {
@@ -185,7 +185,7 @@ void AutoStitch::stitchImages(QVector<SplicePicturesImageItem> &imageList, QSize
 
     /* prepare row images */
     qDebug() << "prepare rows start";
-    QPixmap **rowPixmaps = new QPixmap*;
+    QPixmap **rowPixmaps = new QPixmap*[rows]; for (int r = 0; r < rows; r++) rowPixmaps[r] = NULL;
     for (int r = 0; r < rows; r++) {
         int
 //            maxOffsetX = 0, maxOffsetY = 0,
@@ -228,7 +228,7 @@ void AutoStitch::stitchImages(QVector<SplicePicturesImageItem> &imageList, QSize
 
     /* stitch row images */
     qDebug() << "stitch rows start";
-    QPoint **rowOffsets = new QPoint*;
+    QPoint **rowOffsets = new QPoint*[rows - 1]; for (int r = 0; r < rows - 1; r++) rowOffsets[r] = NULL;
     int rowOffset = 0;
     int minRowOffset = 0;
     for (int r = 0; r < rows - 1; r++) {
@@ -266,9 +266,9 @@ void AutoStitch::stitchImages(QVector<SplicePicturesImageItem> &imageList, QSize
         delete [](offsets[r]);
     }
     delete []offsets;
-    for (int r = 0; r < cols - 1; r++) delete rowPixmaps[r];
+    for (int r = 0; r < rows; r++) delete rowPixmaps[r];
     delete [](rowPixmaps);
-    for (int r = 0; r < cols - 1; r++) delete rowOffsets[r];
+    for (int r = 0; r < rows - 1; r++) delete rowOffsets[r];
     delete [](rowOffsets);
     qDebug() << "memcycle end";
 }

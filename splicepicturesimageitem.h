@@ -25,6 +25,7 @@ public:
     SplicePicturesImageItem(const SplicePicturesImageItem &item);
     SplicePicturesImageItem(QJsonObject &json);
     SplicePicturesImageItem(int row, int col, QString path);
+    ~SplicePicturesImageItem();
 //    SplicePicturesImageItem(int row, int col, QImage *image, QString path);
 //    SplicePicturesImageItem(int row, int col, QImage *image, QPixmap pixmap, QString path, int width, int height, int x, int y);
 

@@ -176,13 +176,13 @@ QPoint SplicePicturesPanel::getZoomCenter() {
 
 QPixmap *SplicePicturesPanel::getFullPixmap(bool repaint) {
     if (!repaint) return fullPixmap;
-    int globalDrawStartX = INT_MAX, globalDrawStartY = INT_MAX;
-    int globalDrawEndX = -INT_MAX, globalDrawEndY = -INT_MAX;
+    double globalDrawStartX = INT_MAX, globalDrawStartY = INT_MAX;
+    double globalDrawEndX = -INT_MAX, globalDrawEndY = -INT_MAX;
     QVector<QPixmap> pixmaps;
     QVector<double*> pixargs;
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
-        double drawWidth = (double)iter->getZoom() * (double)iter->getWidth();
-        double drawHeight = (double)iter->getZoom() * (double)iter->getHeight();
+        double drawWidth = iter->getWidth();
+        double drawHeight = iter->getHeight();
         double drawOffsetX = iter->getX();
         double drawOffsetY = iter->getY();
         double drawStartX = iter->getCol() * uwidth / imageZoom + (uwidth / imageZoom - drawWidth) / 2 + drawOffsetX;
@@ -275,6 +275,8 @@ void SplicePicturesPanel::generateFullPixmapResizedAndCut() {
     double cutEndY = imageHeight;
     if (finalDrawEndX > canvasWidth) { cutEndX -= finalDrawEndX - canvasWidth; finalDrawEndX = canvasWidth; }
     if (finalDrawEndY > canvasHeight) { cutEndY -= finalDrawEndY - canvasHeight; finalDrawEndY = canvasHeight; }
+    if (cutEndX < cutStartX) cutEndX = cutStartX;
+    if (cutEndY < cutStartY) cutEndY = cutStartY;
     finalDrawWidth = cutEndX - cutStartX;
     finalDrawHeight = cutEndY - cutStartY;
     if (fullPixmapResizedAndCut) delete fullPixmapResizedAndCut;
@@ -617,29 +619,32 @@ void SplicePicturesPanel::autoStitch(QSize overlap, QSize searchRegion, QSize fe
     for (QVector<SplicePicturesImageItem>::iterator iter = imageList.begin(); iter != imageList.end(); iter++) {
         items[iter->getRow()][iter->getCol()] = (SplicePicturesImageItem *)iter;
     }
-    int accOffsetY = 0, accOffsetX = 0, lastOffsetX = 0, lastOffsetY = 0, offsetX = 0, offsetY = 0;
+    double accOffsetY = 0, accOffsetX = 0, lastOffsetX = 0, lastOffsetY = 0, offsetX = 0, offsetY = 0;
+    int baseOffsetX = 0, baseOffsetY;
     for (int r = 0; r < rows; r++) {
         accOffsetX = 0;
         lastOffsetX = 0;
+        baseOffsetX = items[r][0] ? (items[r][0]->getImage()->size().width() - actualWidth) / 2 : 0;
         for (int c = 0; c < cols; c++) {
             SplicePicturesImageItem *item = items[r][c];
             if (item == NULL) continue;
-            offsetX = item->getImage()->size().width() - actualWidth;
-            accOffsetX += offsetX / 2 + lastOffsetX;
-            lastOffsetX = offsetX - offsetX / 2;
-            item->setX(item->getX() + accOffsetX);
+            offsetX = (item->getImage()->size().width() - actualWidth) / 2;
+            accOffsetX += c == 0 ? 0 : offsetX + lastOffsetX;
+            lastOffsetX = offsetX;
+            item->setX(item->getX() + floor(accOffsetX + 0.5) + baseOffsetX);
         }
     }
     for (int c = 0; c < cols; c++) {
         accOffsetY = 0;
         lastOffsetY = 0;
+        baseOffsetY = items[0][c] ? (items[0][c]->getImage()->size().height() - actualHeight) / 2 : 0;
         for (int r = 0; r < rows; r++) {
             SplicePicturesImageItem *item = items[r][c];
             if (item == NULL) continue;
-            offsetY = actualHeight - item->getImage()->size().height();
-            accOffsetY += offsetY / 2 + lastOffsetY;
-            lastOffsetY = offsetY - offsetY / 2;
-            item->setX(item->getX() + accOffsetY);
+            offsetY = (item->getImage()->size().height() - actualHeight) / 2;
+            accOffsetY += r == 0 ? 0 : offsetY + lastOffsetY;
+            lastOffsetY = offsetY;
+            item->setY(item->getY() + floor(accOffsetY + 0.5) + baseOffsetY);
         }
     }
     qDebug() << "calibrated:";

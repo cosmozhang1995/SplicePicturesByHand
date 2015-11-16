@@ -386,15 +386,10 @@ void SplicePicturesByHand::onButtonGenerateClicked() {
         panel->getFullPixmap()->save(dir.absoluteFilePath("full.tiff"));
         qDebug() << 4;
         for (int r = 0; r < NUM_ROWS; r++) {
-            qDebug() << "4.1";
             for (int c = 0; c < NUM_COLS; c++) {
-                qDebug() << "4.1.1";
                 bool success;
-                qDebug() << "4.1.2";
                 QPixmap pix = panel->getTransformedPixmap(r, c, success);
-                qDebug() << "4.1.3";
                 if (success) pix.save(dir.absoluteFilePath(QString("%1.tiff").arg(r * 4 + c + 1)));
-                qDebug() << "4.1.4";
             }
         }
     }

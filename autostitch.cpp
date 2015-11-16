@@ -252,6 +252,7 @@ void AutoStitch::stitchImages(QVector<SplicePicturesImageItem> &imageList, QSize
         int row = iter->getRow(), col = iter->getCol();
         QPoint rowOffset = (row == 0 ? QPoint() : *rowOffsets[row - 1]);
         QPoint offset = (col == 0 ? QPoint() : *offsets[row][col - 1]);
+        qDebug() << QString("%1,%2 --- x = %3, y = %4").arg(row).arg(col).arg(offset.x() + rowOffset.x()).arg(offset.y() + rowOffset.y());
         iter->setX(offset.x() + rowOffset.x() - minRowOffset - overlap.width() * col);
         iter->setY(offset.y() + rowOffset.y() - overlap.height() * row);
     }

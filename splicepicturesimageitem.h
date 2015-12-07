@@ -75,6 +75,10 @@ private:
     Rational zoom;
 
     void loadFromPath(QString path);
+
+    QImage *tranfromedImage;
+    QPixmap *tranfromedPixmap;
+    void generateTransformed();
 };
 
 #endif // SPLICEPICTURESIMAGEITEM_H

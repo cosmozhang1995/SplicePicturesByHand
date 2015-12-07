@@ -7,6 +7,7 @@ class SplicePicturesPanel;
 class QSlider;
 class QLineEdit;
 class QLabel;
+class QPushButton;
 
 #define NUM_ROWS 4
 #define NUM_COLS 4
@@ -46,7 +47,8 @@ public slots:
     void onButtonGenerateBackgroundClicked();
     void onButtonDodgingBackgroundClicked();
     void onButtonPreCalibrationLoadClicked();
-    void onButtonPreCalibrationDoClicked();
+    void onButtonPreCalibrationScaleClicked();
+    void onButtonPreCalibrationRotateClicked();
     void onButtonPreCalibrationImportClicked();
     void onButtonPreCalibrationExportClicked();
     void onButtonLoadImageClicked();
@@ -64,6 +66,9 @@ public slots:
     void onButtonGenerateClicked();
     void onButtonExportClicked();
     void onButtonImportClicked();
+
+    void onAutoStitchButtonPressed();
+    void onAutoStitchButtonReleased();
 private:
     void loadStatus();
     bool loadImages(bool emptyFirst, int row = -1, int col = -1);
@@ -77,6 +82,7 @@ private:
 
     QLabel *informationLabel;
     QLabel *statusLabel;
+    QPushButton *autoSpliceButton;
 
     int _row;
     int _col;

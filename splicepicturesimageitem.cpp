@@ -114,7 +114,7 @@ QImage SplicePicturesImageItem::getTransformedImage(TransformFlag flag) {
     int flagint = (int)flag;
     if (flagint & TRANS_SCALE) matrix.scale((double)getZoom(), (double)getZoom());
     if (flagint & TRANS_ROTATE) matrix.rotate((double)getRotation());
-    if (flagint & TRANS_MOVE) matrix.translate(getX(), getY());
+//    if (flagint & TRANS_MOVE) matrix.translate(getX(), getY());
     return getImage()->transformed(matrix);
 }
 QPixmap SplicePicturesImageItem::getTransformedPixmap(TransformFlag flag) {
@@ -122,7 +122,7 @@ QPixmap SplicePicturesImageItem::getTransformedPixmap(TransformFlag flag) {
     int flagint = (int)flag;
     if (flagint & TRANS_SCALE) matrix.scale((double)getZoom(), (double)getZoom());
     if (flagint & TRANS_ROTATE) matrix.rotate((double)getRotation());
-    if (flagint & TRANS_MOVE) matrix.translate(getX(), getY());
+//    if (flagint & TRANS_MOVE) matrix.translate(getX(), getY());
     return getPixmap()->transformed(matrix);
 }
 QImage SplicePicturesImageItem::getTransformedImage(QRect range, TransformFlag flag) {

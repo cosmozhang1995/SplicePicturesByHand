@@ -24,6 +24,8 @@
 #include <QMessageBox>
 #include <QFrame>
 #include <QFont>
+#include <QGraphicsDropShadowEffect>
+#include <QStyle>
 
 SplicePicturesByHand::SplicePicturesByHand(QWidget *parent)
     : QWidget(parent), _row(0), _col(0)
@@ -53,31 +55,31 @@ void SplicePicturesByHand::drawLayout() {
     label = new QLabel("Step 1. De-vignetting:");
     label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     dodgingLayout->addWidget(label);
-    QHBoxLayout *dodgingLayout1 = new QHBoxLayout();
-    QPushButton *buttonLoadBackground = new QPushButton("Load Background");
-    QPushButton *buttonGenerateBackground = new QPushButton("Generate Background");
-    QPushButton *buttonDodgingProcess = new QPushButton("De-vignetting Process");
-    dodgingLayout1->addWidget(buttonLoadBackground);
-    dodgingLayout1->addWidget(buttonGenerateBackground);
-    dodgingLayout1->addWidget(buttonDodgingProcess);
+    QGridLayout *dodgingLayout1 = new QGridLayout();
+    QPushButton *buttonLoadBackground = new QPushButton("Load Background Images");
+//    QPushButton *buttonGenerateBackground = new QPushButton("Generate Background");
+    QPushButton *buttonDodgingProcess = new QPushButton("Estimate Vignetted Functions");
+    dodgingLayout1->addWidget(buttonLoadBackground, 0, 0, 1, 1);
+//    dodgingLayout1->addWidget(buttonGenerateBackground);
+    dodgingLayout1->addWidget(buttonDodgingProcess, 0, 1, 1, 1);
     dodgingLayout->addLayout(dodgingLayout1);
 
     QVBoxLayout *preCalibrationLayout = new QVBoxLayout();
-    label = new QLabel("Step 2. Pre-calibrating:");
+    label = new QLabel("Step 2. Pre-calibration:");
     label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     preCalibrationLayout->addWidget(label);
-    QHBoxLayout *preCalibrationLayout1 = new QHBoxLayout();
-    QHBoxLayout *preCalibrationLayout2 = new QHBoxLayout();
-    QPushButton *buttonLoadCalibrationSamples = new QPushButton("Load Pre-Calibration Images");
-    QPushButton *buttonDoPreCalibration = new QPushButton("Pre-Calibrate");
-    QPushButton *buttonImportCalibration = new QPushButton("Import Calibration");
-    QPushButton *buttonExportCalibration = new QPushButton("Export Calibration");
-    preCalibrationLayout1->addWidget(buttonLoadCalibrationSamples);
-    preCalibrationLayout1->addWidget(buttonDoPreCalibration);
-    preCalibrationLayout2->addWidget(buttonImportCalibration);
-    preCalibrationLayout2->addWidget(buttonExportCalibration);
+    QGridLayout *preCalibrationLayout1 = new QGridLayout();
+    QPushButton *buttonLoadCalibrationSamples = new QPushButton("Load Calibration Images");
+    QPushButton *buttonCalibrateRotate = new QPushButton("Calculate Rotation Errors");
+    QPushButton *buttonCalibrateScale = new QPushButton("Calculate Scale Errors");
+    QPushButton *buttonImportCalibration = new QPushButton("Load Calibration Parameters");
+    QPushButton *buttonExportCalibration = new QPushButton("Save Calibration Parameters");
+    preCalibrationLayout1->addWidget(buttonLoadCalibrationSamples, 0, 0, 1, 2);
+    preCalibrationLayout1->addWidget(buttonCalibrateRotate, 1, 0, 1, 1);
+    preCalibrationLayout1->addWidget(buttonCalibrateScale, 1, 1, 1, 1);
+    preCalibrationLayout1->addWidget(buttonImportCalibration, 2, 0, 1, 1);
+    preCalibrationLayout1->addWidget(buttonExportCalibration, 2, 1, 1, 1);
     preCalibrationLayout->addLayout(preCalibrationLayout1);
-    preCalibrationLayout->addLayout(preCalibrationLayout2);
 
     QVBoxLayout *dashboardLayout = new QVBoxLayout();
 
@@ -85,13 +87,15 @@ void SplicePicturesByHand::drawLayout() {
     label = new QLabel("Step 3. Load Images:");
     label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     fileButtonLayout->addWidget(label);
-    QHBoxLayout *fileButtonLayout1 = new QHBoxLayout();
-    QPushButton *buttonLoadImage = new QPushButton("Load Image");
-    QPushButton *buttonRemoveImage = new QPushButton("Remove Image");
-    QPushButton *buttonClearImage = new QPushButton("Clear");
-    fileButtonLayout1->addWidget(buttonLoadImage);
-    fileButtonLayout1->addWidget(buttonRemoveImage);
-    fileButtonLayout1->addWidget(buttonClearImage);
+    QGridLayout *fileButtonLayout1 = new QGridLayout();
+    QPushButton *buttonLoadImage = new QPushButton("Load Images");
+    QPushButton *buttonCorrect = new QPushButton("Correct Errors");
+    QPushButton *buttonRemoveImage = new QPushButton("Remove Selected Image");
+    QPushButton *buttonClearImage = new QPushButton("Clear All Images");
+    fileButtonLayout1->addWidget(buttonLoadImage, 0, 0, 1, 1);
+    fileButtonLayout1->addWidget(buttonCorrect, 0, 1, 1, 1);
+    fileButtonLayout1->addWidget(buttonRemoveImage, 1, 0, 1, 1);
+    fileButtonLayout1->addWidget(buttonClearImage, 1, 1, 1, 1);
     fileButtonLayout->addLayout(fileButtonLayout1);
 
     QGridLayout *navLayout = new QGridLayout();
@@ -147,13 +151,23 @@ void SplicePicturesByHand::drawLayout() {
     autoSpliceLayout->addWidget(label);
     font = new QFont();
     font->setPixelSize(16);
-    QPushButton *autoSpliceButton = new QPushButton("Auto-Mosaic");
+    autoSpliceButton = new QPushButton("Auto-Mosaic", this);
 //    autoSpliceButton->setFont(*font);
-    autoSpliceButton->setStyleSheet("QPushButton {font:16px;padding:16px;}");
+    autoSpliceButton->setStyleSheet(QString("QPushButton {font:16px;padding:16px; border: 1px solid gray; border-radius: 6px; background-color: #dddddd;} ") +
+                                    QString("QPushButton:hover {background-color: white;}"));
+    connect(autoSpliceButton, SIGNAL(pressed()), this, SLOT(onAutoStitchButtonPressed()));
+    connect(autoSpliceButton, SIGNAL(released()), this, SLOT(onAutoStitchButtonReleased()));
+    QGraphicsDropShadowEffect *autoSpliceButtonShadowEffect = new QGraphicsDropShadowEffect();
+    autoSpliceButtonShadowEffect->setColor(Qt::black);
+    autoSpliceButtonShadowEffect->setBlurRadius(5);
+    autoSpliceButtonShadowEffect->setOffset(0);
+    autoSpliceButtonShadowEffect->setEnabled(true);
+    autoSpliceButton->setGraphicsEffect(autoSpliceButtonShadowEffect);
+    autoSpliceButton->setCursor(Qt::OpenHandCursor);
     autoSpliceLayout->addWidget(autoSpliceButton);
 
     statusLabel = new QLabel("");
-    statusLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    statusLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     informationLabel = new QLabel("");
     informationLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
 
@@ -192,13 +206,19 @@ void SplicePicturesByHand::drawLayout() {
     layout->addWidget(label);
     setLayout(layout);
 
+//    statusLabel->setMaximumWidth(dashboardLayout->sizeHint().width());
+//    statusLabel->setWordWrap(true);
+    statusLabel->setMinimumWidth(700);
+    statusLabel->setMaximumWidth(700);
+
     connect(panel, SIGNAL(onUnitClicked(int,int)), this, SLOT(onPanelUnitClicked(int,int)));
     connect(panel, SIGNAL(onDrag(int,int,int,int)), this, SLOT(onPanelDragEvent(int,int,int,int)));
     connect(buttonLoadBackground, SIGNAL(clicked(bool)), this, SLOT(onButtonLoadBackgroundClicked()));
-    connect(buttonGenerateBackground, SIGNAL(clicked(bool)), this, SLOT(onButtonGenerateBackgroundClicked()));
+//    connect(buttonGenerateBackground, SIGNAL(clicked(bool)), this, SLOT(onButtonGenerateBackgroundClicked()));
     connect(buttonDodgingProcess, SIGNAL(clicked(bool)), this, SLOT(onButtonDodgingBackgroundClicked()));
-    connect(buttonDoPreCalibration, SIGNAL(clicked(bool)), this, SLOT(onButtonPreCalibrationDoClicked()));
     connect(buttonLoadCalibrationSamples, SIGNAL(clicked(bool)), this, SLOT(onButtonPreCalibrationLoadClicked()));
+    connect(buttonCalibrateRotate, SIGNAL(clicked(bool)), this, SLOT(onButtonPreCalibrationRotateClicked()));
+    connect(buttonCalibrateScale, SIGNAL(clicked(bool)), this, SLOT(onButtonPreCalibrationScaleClicked()));
     connect(buttonExportCalibration, SIGNAL(clicked(bool)), this, SLOT(onButtonPreCalibrationExportClicked()));
     connect(buttonImportCalibration, SIGNAL(clicked(bool)), this, SLOT(onButtonPreCalibrationImportClicked()));
     connect(buttonPanelZoomIn, SIGNAL(clicked(bool)), this, SLOT(onButtonPanelZoomInClicked()));
@@ -248,7 +268,10 @@ void SplicePicturesByHand::onButtonDodgingBackgroundClicked() {}
 void SplicePicturesByHand::onButtonPreCalibrationLoadClicked() {
     if (loadImages(!_inPreCalibrationMode)) _inPreCalibrationMode = true;
 }
-void SplicePicturesByHand::onButtonPreCalibrationDoClicked() {
+void SplicePicturesByHand::onButtonPreCalibrationRotateClicked() {
+    if (checkInPreCalibrationMode(true, false)) return;
+}
+void SplicePicturesByHand::onButtonPreCalibrationScaleClicked() {
     if (checkInPreCalibrationMode(true, false)) return;
 }
 void SplicePicturesByHand::onButtonPreCalibrationImportClicked() {
@@ -376,15 +399,11 @@ void SplicePicturesByHand::onButtonGenerateClicked() {
 //        pix->save(filePath);
 //    }
     static QString defaultPath = "/Users/cosmozhang/Desktop/Untitled.bmp";
-    qDebug() << 1;
     QString filePath = QFileDialog::getSaveFileName(0, "Save the Completed Image", defaultPath, "Images (*.bmp)");
     if (filePath != "") {
         QDir dir = QFileInfo(filePath).absoluteDir();
-        qDebug() << 2;
         defaultPath = dir.absoluteFilePath("");
-        qDebug() << 3;
         panel->getFullPixmap()->save(dir.absoluteFilePath("full.tiff"));
-        qDebug() << 4;
         for (int r = 0; r < NUM_ROWS; r++) {
             for (int c = 0; c < NUM_COLS; c++) {
                 bool success;
@@ -541,4 +560,12 @@ void SplicePicturesByHand::keyPressEvent(QKeyEvent *event) {
         onButtonMoveRightClicked();
     }
     return QWidget::keyPressEvent(event);
+}
+
+
+void SplicePicturesByHand::onAutoStitchButtonPressed() {
+    autoSpliceButton->graphicsEffect()->setEnabled(false);
+}
+void SplicePicturesByHand::onAutoStitchButtonReleased() {
+    autoSpliceButton->graphicsEffect()->setEnabled(true);
 }
